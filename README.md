@@ -157,3 +157,24 @@ Visit **`http://127.0.0.1:5173`** in your browser.
 - `GET /api/categories` — Get default and custom food categories
 - `POST /api/categories` — Add custom category `{ name, icon, color }`
 - `DELETE /api/categories/:id` — Delete custom category
+
+---
+
+## Deploy to Vercel
+
+This repository is pre-configured with `vercel.json` for full-stack deployment on Vercel (Frontend static build + Serverless Express API backend).
+
+### Steps to Deploy:
+1. Go to [Vercel Dashboard](https://vercel.com) and click **"Add New" -> "Project"**.
+2. Import repository **`monish-mondal-web/Expence-tracker`**.
+3. In the **Configure Project** screen:
+   - **Framework Preset**: Other (or Vite)
+   - **Root Directory**: `./` (leave default)
+4. Add the following **Environment Variables**:
+   - `MONGODB_URI`: Your MongoDB connection string (e.g., `mongodb+srv://finfood:monish2005@cluster0.nixdzus.mongodb.net/finfood_db?retryWrites=true&w=majority&appName=Cluster0`)
+   - `JWT_SECRET`: Your JWT secret key (e.g., `finfood_super_secret_jwt_key_2026`)
+   - `NODE_ENV`: `production`
+   - `EMAIL_USER` (optional): Gmail address for sending real OTP emails
+   - `EMAIL_PASS` (optional): 16-character Google App Password
+5. Click **Deploy**. Vercel will build both the frontend and serverless API automatically.
+
