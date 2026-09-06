@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const budgetController = require('../controllers/budgetController');
+const { validateBudgetPayload, validateObjectId } = require('../middleware/validate');
+
+router.get('/', budgetController.getMonthlyBudget);
+router.post('/', validateBudgetPayload, budgetController.setMonthlyBudget);
+router.put('/:id', validateObjectId('id'), validateBudgetPayload, budgetController.updateMonthlyBudget);
+
+module.exports = router;
