@@ -24,6 +24,12 @@ const expenseSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    space: {
+      type: String,
+      trim: true,
+      default: null,
+      index: true,
+    },
     note: {
       type: String,
       trim: true,

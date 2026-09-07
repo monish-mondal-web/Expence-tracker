@@ -1652,7 +1652,7 @@ button, input, select, textarea {
 .modal-content {
   background: #FFFFFF;
   border-radius: var(--radius-xl);
-  padding: 2rem;
+  padding: 1.75rem 1.5rem;
   width: 100%;
   max-width: 480px;
   box-shadow: var(--shadow-float);
@@ -1660,6 +1660,45 @@ button, input, select, textarea {
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Global Thin Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
 }
 
 .modal-header {

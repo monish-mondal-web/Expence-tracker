@@ -40,6 +40,21 @@ import {
   Plane,
   Palmtree,
   Compass,
+  CreditCard,
+  Award,
+  Activity,
+  ShieldCheck,
+  Wifi,
+  Tv,
+  Smartphone,
+  Laptop,
+  Gift,
+  AlertCircle,
+  Wrench,
+  Droplets,
+  Bus,
+  Train,
+  Fuel,
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -83,6 +98,21 @@ const ICON_MAP = {
   Plane,
   Palmtree,
   Compass,
+  CreditCard,
+  Award,
+  Activity,
+  ShieldCheck,
+  Wifi,
+  Tv,
+  Smartphone,
+  Laptop,
+  Gift,
+  AlertCircle,
+  Wrench,
+  Droplets,
+  Bus,
+  Train,
+  Fuel,
 };
 
 // Intelligent semantic fallback based on category names

@@ -73,13 +73,14 @@ exports.getExpenses = async (req, res, next) => {
 exports.createExpense = async (req, res, next) => {
   try {
     const user = req.user || (await getOrCreateDefaultUser());
-    const { amount, date, category, note } = req.body;
+    const { amount, date, category, note, space } = req.body;
 
     const expense = await Expense.create({
       userId: user._id,
       amount: Number(amount),
       date: new Date(date),
       category: category.trim(),
+      space: (space || '').trim() || null,
       note: (note || '').trim(),
     });
 
@@ -98,12 +99,13 @@ exports.updateExpense = async (req, res, next) => {
   try {
     const user = req.user || (await getOrCreateDefaultUser());
     const { id } = req.params;
-    const { amount, date, category, note } = req.body;
+    const { amount, date, category, note, space } = req.body;
 
     const updateFields = {};
     if (amount !== undefined) updateFields.amount = Number(amount);
     if (date !== undefined) updateFields.date = new Date(date);
     if (category !== undefined) updateFields.category = category.trim();
+    if (space !== undefined) updateFields.space = (space || '').trim() || null;
     if (note !== undefined) updateFields.note = note.trim();
 
     const expense = await Expense.findOneAndUpdate(

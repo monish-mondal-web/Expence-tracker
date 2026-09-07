@@ -211,10 +211,47 @@ exports.getDashboardData = async (req, res, next) => {
       }
     });
 
+    // Helper to match expense category to space
+    const isCategoryInSpace = (catName = '', spaceName = '') => {
+      const cat = (catName || '').toLowerCase().trim();
+      const space = (spaceName || '').toLowerCase().trim();
+
+      if (cat === space) return true;
+
+      if (space === 'food & dining' || space === 'food') {
+        return isFoodSubCategory(cat);
+      }
+      if (space === 'room rent') {
+        return cat.includes('rent') || cat.includes('flat') || cat.includes('maintenance') || cat.includes('water bill') || cat.includes('electricity bill') || cat.includes('maid');
+      }
+      if (space === 'gym') {
+        return cat.includes('gym') || cat.includes('fitness') || cat.includes('workout') || cat.includes('trainer') || cat.includes('supplement');
+      }
+      if (space === 'travel') {
+        return cat.includes('travel') || cat.includes('commute') || cat.includes('petrol') || cat.includes('fuel') || cat.includes('metro') || cat.includes('cab') || cat.includes('auto') || cat.includes('bus') || cat.includes('flight');
+      }
+      if (space === 'tour') {
+        return cat.includes('tour') || cat.includes('sightseeing') || cat.includes('hotel') || cat.includes('stay');
+      }
+      if (space === 'health') {
+        return cat.includes('health') || cat.includes('medicine') || cat.includes('doctor') || cat.includes('clinic') || cat.includes('hospital') || cat.includes('test');
+      }
+      if (space === 'shopping') {
+        return cat.includes('shopping') || cat.includes('cloth') || cat.includes('gadget') || cat.includes('footwear') || cat.includes('beauty');
+      }
+      if (space === 'bills & utilities' || space === 'bills') {
+        return cat.includes('bill') || cat.includes('recharge') || cat.includes('wifi') || cat.includes('gas') || cat.includes('dth');
+      }
+      return false;
+    };
+
     // Combine all top spaces and calculate individual metrics for non-food spaces
     const allTopSpaces = [...defaultTopSpaces.slice(0, 1), ...defaultTopSpaces.slice(1).map((s) => {
       const bAmount = Math.round((budgetMap[s.name] || 0) * 100) / 100;
-      const sExpenses = expenses.filter((e) => (e.category || 'Other').toLowerCase() === s.name.toLowerCase());
+      const sExpenses = expenses.filter((e) => {
+        if (e.space && e.space.toLowerCase() === s.name.toLowerCase()) return true;
+        return isCategoryInSpace(e.category || 'Other', s.name);
+      });
       const sAmount = sExpenses.reduce((sum, e) => sum + e.amount, 0);
       const tSpent = sExpenses.filter((e) => {
         const eDate = new Date(e.date);
@@ -242,7 +279,10 @@ exports.getDashboardData = async (req, res, next) => {
       };
     }), ...customSpaces.map((s) => {
       const bAmount = Math.round((budgetMap[s.name] || 0) * 100) / 100;
-      const sExpenses = expenses.filter((e) => (e.category || 'Other').toLowerCase() === s.name.toLowerCase());
+      const sExpenses = expenses.filter((e) => {
+        if (e.space && e.space.toLowerCase() === s.name.toLowerCase()) return true;
+        return isCategoryInSpace(e.category || 'Other', s.name);
+      });
       const sAmount = sExpenses.reduce((sum, e) => sum + e.amount, 0);
       const tSpent = sExpenses.filter((e) => {
         const eDate = new Date(e.date);
@@ -279,11 +319,10 @@ exports.getDashboardData = async (req, res, next) => {
       const activeSpaceObj = allTopSpaces.find((s) => s.name.toLowerCase() === qSpace.toLowerCase());
       if (activeSpaceObj) {
         activeSpaceData = activeSpaceObj;
-        if (isFoodSubCategory(qSpace)) {
-          filteredRecentExpenses = foodExpenses.slice(0, 8);
-        } else {
-          filteredRecentExpenses = expenses.filter((e) => (e.category || 'Other').toLowerCase() === qSpace.toLowerCase()).slice(0, 8);
-        }
+        filteredRecentExpenses = expenses.filter((e) => {
+          if (e.space && e.space.toLowerCase() === qSpace.toLowerCase()) return true;
+          return isCategoryInSpace(e.category || 'Other', qSpace);
+        }).slice(0, 8);
       }
     }
 
