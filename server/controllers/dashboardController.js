@@ -200,6 +200,19 @@ exports.getDashboardData = async (req, res, next) => {
       }
     });
 
+    Object.keys(budgetMap).forEach((bName) => {
+      const lower = bName.toLowerCase().trim();
+      if (!isFoodSubCategory(lower) && !knownTopNames.has(lower)) {
+        const meta = metaMap[bName] || {};
+        customSpaces.push({
+          name: bName,
+          icon: meta.icon || 'Sparkles',
+          color: meta.color || '#8B5CF6',
+        });
+        knownTopNames.add(lower);
+      }
+    });
+
     // Combine all top spaces and calculate individual metrics for non-food spaces
     const allTopSpaces = [...defaultTopSpaces.slice(0, 1), ...defaultTopSpaces.slice(1).map((s) => {
       const bAmount = Math.round((budgetMap[s.name] || 0) * 100) / 100;

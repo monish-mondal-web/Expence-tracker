@@ -22,7 +22,7 @@ export const DashboardPage = () => {
     activeSpace,
   } = useApp();
 
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
   const promptedUserKeyRef = useRef(null);
 
@@ -30,15 +30,17 @@ export const DashboardPage = () => {
   // 1. If 0 spaces set: prompt on open/refresh every time
   // 2. If 1 space set: prompt daily one time (user-scoped)
   // 3. If 2 spaces set: prompt every 2 days (48 hours interval, user-scoped)
-  // 4. If 3 or more spaces set: do not prompt
+  // 4. If 3 or more spaces set (already have monthly limits set): NEVER prompt!
   useEffect(() => {
-    if (isDashboardLoading || !dashboardData) return;
+    // Strictly wait until both auth and dashboard data are completely loaded for the user
+    if (isAuthLoading || !user || isDashboardLoading || !dashboardData) return;
 
     // Check if this user session has already processed the prompt on this mount
-    const currentUserKey = user?._id || user?.email || 'guest';
+    const currentUserKey = String(user._id || user.email || '');
+    if (!currentUserKey) return;
     if (promptedUserKeyRef.current === currentUserKey) return;
 
-    // Check if user has budget doc or any budget amount
+    // Check if user has budget doc or any monthly budget amount set
     const hasBudgetDoc =
       Boolean(dashboardData?.hasBudget) &&
       (Number(dashboardData?.monthlyBudget) || 0) > 0;
@@ -46,20 +48,31 @@ export const DashboardPage = () => {
     let spaceCount = 0;
 
     if (hasBudgetDoc) {
-      const serverSpaces = dashboardData?.spaces || [];
-      const categoryBudgets = dashboardData?.categoryBudgets || [];
+      const rawCategoryBudgets = dashboardData?.categoryBudgets || [];
+      const validBudgets = rawCategoryBudgets.filter((cb) => (Number(cb?.amount) || 0) > 0);
 
-      const budgetedSpaces = serverSpaces.filter((s) => (Number(s.monthlyBudget) || 0) > 0);
-      const validCategoryBudgets = categoryBudgets.filter((cb) => (Number(cb.amount) || 0) > 0);
+      const serverSpaces = dashboardData?.spaces || [];
+      const budgetedSpaces = serverSpaces.filter((s) => (Number(s?.monthlyBudget) || 0) > 0);
+
+      const breakdown = dashboardData?.categoryBreakdown || [];
+      const budgetedBreakdown = breakdown.filter((b) => (Number(b?.budget) || 0) > 0);
 
       const distinctBudgetedNames = new Set([
-        ...budgetedSpaces.map((s) => s.name.toLowerCase()),
-        ...validCategoryBudgets.map((cb) => cb.category.toLowerCase()),
+        ...validBudgets.map((cb) => (cb.category || '').toLowerCase().trim()),
+        ...budgetedSpaces.map((s) => (s.name || '').toLowerCase().trim()),
+        ...budgetedBreakdown.map((b) => (b.category || '').toLowerCase().trim()),
       ]);
+      distinctBudgetedNames.delete('');
 
-      spaceCount = Math.max(1, distinctBudgetedNames.size);
+      spaceCount = Math.max(validBudgets.length, distinctBudgetedNames.size);
     } else {
       spaceCount = 0;
+    }
+
+    // Rule 4: 3 or more spaces set (or monthly limit already complete) -> NEVER PROMPT!
+    if (spaceCount >= 3) {
+      promptedUserKeyRef.current = currentUserKey;
+      return;
     }
 
     // Rule 1: 0 spaces set -> auto prompt every open/refresh
@@ -97,12 +110,7 @@ export const DashboardPage = () => {
       }
       return;
     }
-
-    // Rule 4: 3 or more spaces set -> Never prompt
-    if (spaceCount >= 3) {
-      promptedUserKeyRef.current = currentUserKey;
-    }
-  }, [isDashboardLoading, dashboardData, user, openSetBudget]);
+  }, [isAuthLoading, isDashboardLoading, dashboardData, user, openSetBudget]);
 
   // Space-aware daily safe spend and remaining calculations
   const isSpaceMode = activeSpace && activeSpace !== 'All';
