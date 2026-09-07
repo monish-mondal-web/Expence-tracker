@@ -3595,34 +3595,105 @@ select.form-input {
   white-space: nowrap;
 }
 
+/* Pacing banner: Today's Safe Limit & Your Daily Avg */
+.budget-pace-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  margin-bottom: 6px;
+}
+
+.pace-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pace-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: #94A3B8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pace-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  white-space: nowrap;
+}
+
+.pace-value.emerald {
+  color: #34D399;
+}
+
+.pace-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 4px;
+}
+
+.budget-expand-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 0 2px;
+  font-size: 0.72rem;
+  color: #94A3B8;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  user-select: none;
+}
+
+.budget-expand-hint:hover {
+  color: #34D399;
+}
+
 /* Card Dynamic Safe Limit Breakdown with Smooth Accordion */
+.budget-breakdown-expandable,
 .card-dynamic-breakdown-wrapper {
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.budget-breakdown-expandable.open,
 .card-dynamic-breakdown-wrapper.open {
   grid-template-rows: 1fr;
 }
 
+.budget-breakdown-inner,
 .card-dynamic-breakdown-inner {
   min-height: 0;
   overflow: hidden;
 }
 
+.budget-breakdown-card,
 .card-dynamic-breakdown {
-  margin-top: 14px;
+  margin-top: 12px;
   padding: 13px 14px;
-  background: rgba(4, 21, 16, 0.78);
+  background: rgba(4, 21, 16, 0.85);
   border: 1px solid rgba(52, 211, 153, 0.24);
   border-radius: 14px;
   backdrop-filter: blur(12px);
   opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 0.3s ease, transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(-6px);
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.budget-breakdown-expandable.open .budget-breakdown-card,
 .card-dynamic-breakdown-wrapper.open .card-dynamic-breakdown {
   opacity: 1;
   transform: translateY(0);

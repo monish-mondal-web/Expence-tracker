@@ -36,6 +36,10 @@ import {
   HeartPulse,
   GraduationCap,
   Home,
+  Dumbbell,
+  Plane,
+  Palmtree,
+  Compass,
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -75,13 +79,17 @@ const ICON_MAP = {
   HeartPulse,
   GraduationCap,
   Home,
+  Dumbbell,
+  Plane,
+  Palmtree,
+  Compass,
 };
 
-// Intelligent semantic fallback based on food names
+// Intelligent semantic fallback based on category names
 const NAME_KEYWORD_MAP = [
   { keywords: ['breakfast', 'morning', 'coffee', 'tea', 'cafe', 'espresso'], icon: Coffee },
   { keywords: ['lunch', 'meal', 'bistro', 'restaurant'], icon: UtensilsCrossed },
-  { keywords: ['dinner', 'supper', 'night'], icon: Utensils },
+  { keywords: ['dinner', 'supper', 'night', 'food', 'dining'], icon: Utensils },
   { keywords: ['snack', 'cookie', 'biscuit', 'chips'], icon: Cookie },
   { keywords: ['grocery', 'groceries', 'market', 'supermarket', 'mart'], icon: ShoppingCart },
   { keywords: ['fruit', 'apple', 'banana', 'berries'], icon: Apple },
@@ -97,13 +105,15 @@ const NAME_KEYWORD_MAP = [
   { keywords: ['ice cream', 'gelato'], icon: IceCream },
   { keywords: ['soup', 'broth', 'ramen', 'noodles'], icon: Soup },
   { keywords: ['egg', 'omelet'], icon: Egg },
+  { keywords: ['gym', 'fitness', 'workout', 'exercise', 'training'], icon: Dumbbell },
+  { keywords: ['tour', 'trip', 'vacation', 'holiday', 'traveling', 'flight'], icon: Plane },
+  { keywords: ['rent', 'room rent', 'flat', 'hostel', 'pg', 'room', 'house', 'home', 'maintenance'], icon: Home },
   { keywords: ['travel', 'transport', 'uber', 'ola', 'auto', 'cab', 'bus', 'train', 'metro', 'petrol', 'fuel'], icon: Car },
   { keywords: ['bill', 'electricity', 'power', 'water bill', 'recharge', 'wifi', 'internet'], icon: Zap },
   { keywords: ['movie', 'cinema', 'theatre', 'netflix', 'entertainment', 'show', 'game'], icon: Film },
   { keywords: ['shopping', 'clothes', 'dress', 'fashion', 'mall', 'amazon', 'flipkart'], icon: ShoppingBag },
   { keywords: ['health', 'medical', 'medicine', 'doctor', 'clinic', 'hospital', 'pharmacy'], icon: HeartPulse },
   { keywords: ['study', 'education', 'book', 'course', 'college', 'school', 'tuition'], icon: GraduationCap },
-  { keywords: ['rent', 'house', 'home', 'maintenance'], icon: Home },
 ];
 
 export const CategoryIcon = ({ name = 'Utensils', size = 20, color = '#64748B' }) => {

@@ -3,14 +3,14 @@ const Category = require('../models/Category');
 
 const DEFAULT_CATEGORIES = [
   { name: 'Food & Dining', icon: 'Utensils', color: '#10B981' },
-  { name: 'Travel & Commute', icon: 'Car', color: '#3B82F6' },
+  { name: 'Travel', icon: 'Car', color: '#3B82F6' },
+  { name: 'Tour', icon: 'Plane', color: '#06B6D4' },
+  { name: 'Room Rent', icon: 'Home', color: '#6366F1' },
+  { name: 'Health', icon: 'HeartPulse', color: '#EF4444' },
+  { name: 'Gym', icon: 'Dumbbell', color: '#F59E0B' },
   { name: 'Shopping', icon: 'ShoppingBag', color: '#EC4899' },
-  { name: 'Bills & Utilities', icon: 'Zap', color: '#F59E0B' },
-  { name: 'Groceries', icon: 'ShoppingCart', color: '#06B6D4' },
-  { name: 'Entertainment', icon: 'Film', color: '#8B5CF6' },
-  { name: 'Health & Medical', icon: 'HeartPulse', color: '#EF4444' },
-  { name: 'Education', icon: 'GraduationCap', color: '#6366F1' },
-  { name: 'Snacks & Cafe', icon: 'Coffee', color: '#D97706' },
+  { name: 'Bills & Utilities', icon: 'Zap', color: '#EAB308' },
+  { name: 'Groceries', icon: 'ShoppingCart', color: '#14B8A6' },
   { name: 'Other', icon: 'MoreHorizontal', color: '#64748B' },
 ];
 

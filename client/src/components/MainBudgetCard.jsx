@@ -256,7 +256,7 @@ export const MainBudgetCard = ({
                 }}
               >
                 <SlidersHorizontal size={14} color="#34D399" />
-                <span>Split by Category</span>
+                <span>Category Budgets (Food, Rent...)</span>
               </button>
 
               <button
@@ -282,7 +282,7 @@ export const MainBudgetCard = ({
                 }}
               >
                 <Layers size={14} color="#38BDF8" />
-                <span>{isExpanded ? 'Hide Category Split' : 'View Category Split'}</span>
+                <span>{isExpanded ? 'Hide Category Budgets' : 'View Category Budgets'}</span>
               </button>
 
               <button
@@ -383,7 +383,7 @@ export const MainBudgetCard = ({
 
       {/* Clickable Expand / Collapse Indicator */}
       <div className="budget-expand-hint">
-        <span>{isExpanded ? 'Hide detailed breakdown' : 'Tap for daily safe breakdown & category split'}</span>
+        <span>{isExpanded ? 'Hide detailed breakdown' : 'Tap for daily safe limit & category budgets'}</span>
         <ChevronDown
           size={14}
           style={{
@@ -480,50 +480,153 @@ export const MainBudgetCard = ({
               <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
                   <span style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Category Budget Pacing
+                    Category Budgets & Pacing
                   </span>
-                  <span style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 600 }}>
-                    {categoryBreakdown.filter((c) => c.budget > 0).length} Allocated
-                  </span>
+                  {categoryBreakdown.filter((c) => c.budget > 0).length > 0 ? (
+                    <span style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 600 }}>
+                      {categoryBreakdown.filter((c) => c.budget > 0).length} Budgeted
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSetBudget();
+                      }}
+                      style={{
+                        background: 'rgba(52, 211, 153, 0.15)',
+                        border: '1px solid rgba(52, 211, 153, 0.3)',
+                        borderRadius: '6px',
+                        color: '#34D399',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      + Set Limits
+                    </button>
+                  )}
                 </div>
+
+                {categoryBreakdown.filter((c) => c.budget > 0).length === 0 && (
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px dashed rgba(255, 255, 255, 0.12)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      marginBottom: '0.65rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.72rem', color: '#94A3B8' }}>
+                      Pick categories (Food, Travel, Tour, Room Rent, Gym, Health) to track limits per activity.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSetBudget();
+                      }}
+                      style={{
+                        background: '#34D399',
+                        color: '#064E3B',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Set Budgets
+                    </button>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
                   {categoryBreakdown.map((item) => {
                     const hasCatBudget = item.budget > 0;
+                    const isCatOver = hasCatBudget && item.spent > item.budget;
                     return (
                       <div
                         key={item.category}
                         style={{
                           background: 'rgba(255, 255, 255, 0.04)',
                           borderRadius: '8px',
-                          padding: '7px 10px',
-                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                          padding: '8px 10px',
+                          border: isCatOver
+                            ? '1px solid rgba(251, 113, 133, 0.3)'
+                            : '1px solid rgba(255, 255, 255, 0.06)',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <CategoryIcon name={item.icon} size={13} color={item.color || '#34D399'} />
-                            <span style={{ fontSize: '0.8rem', color: '#F1F5F9', fontWeight: 600 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: hasCatBudget ? '5px' : '0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <CategoryIcon name={item.icon} size={14} color={item.color || '#34D399'} />
+                            <span style={{ fontSize: '0.82rem', color: '#F1F5F9', fontWeight: 600 }}>
                               {item.category}
                             </span>
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 700 }}>
-                            {formatCurrency(item.spent)}
-                            {hasCatBudget && (
-                              <span style={{ color: '#94A3B8', fontWeight: 500 }}> / {formatCurrency(item.budget)}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ fontSize: '0.78rem', color: '#E2E8F0', fontWeight: 700 }}>
+                              {formatCurrency(item.spent)}
+                              {hasCatBudget && (
+                                <span style={{ color: '#94A3B8', fontWeight: 500 }}> / {formatCurrency(item.budget)}</span>
+                              )}
+                            </div>
+                            {!hasCatBudget ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSetBudget();
+                                }}
+                                style={{
+                                  background: 'transparent',
+                                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                                  borderRadius: '4px',
+                                  color: '#94A3B8',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 600,
+                                  padding: '1px 6px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                + Limit
+                              </button>
+                            ) : (
+                              <span
+                                style={{
+                                  fontSize: '0.65rem',
+                                  fontWeight: 700,
+                                  color: isCatOver ? '#FB7185' : '#34D399',
+                                  background: isCatOver ? 'rgba(251, 113, 133, 0.15)' : 'rgba(52, 211, 153, 0.15)',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                {isCatOver ? 'Over limit' : `${formatCurrency(item.budget - item.spent)} left`}
+                              </span>
                             )}
                           </div>
                         </div>
 
                         {/* Mini progress bar */}
                         {hasCatBudget && (
-                          <div style={{ width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div style={{ width: '100%', height: '5px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden' }}>
                             <div
                               style={{
                                 width: `${Math.min(100, Math.round((item.spent / item.budget) * 100))}%`,
                                 height: '100%',
-                                background: item.spent > item.budget ? '#FB7185' : (item.color || '#34D399'),
-                                borderRadius: '2px',
+                                background: isCatOver ? '#FB7185' : (item.color || '#34D399'),
+                                borderRadius: '3px',
+                                transition: 'width 0.3s ease',
                               }}
                             />
                           </div>
