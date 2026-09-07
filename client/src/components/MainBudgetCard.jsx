@@ -409,7 +409,7 @@ export const MainBudgetCard = ({
 
       {/* Pacing Stats: Safe Daily Spend Target & Today's Over Limit / Safe Left */}
       <div className="budget-pace-banner">
-        <div className="pace-item">
+        <div className="pace-item left">
           <span className="pace-label">
             <CalendarDays size={12} color="#94A3B8" />
             <span>Today's Safe Limit</span>
@@ -421,7 +421,7 @@ export const MainBudgetCard = ({
 
         <div className="pace-divider" />
 
-        <div className="pace-item">
+        <div className="pace-item right">
           <span className="pace-label">
             {safeRemainingToday < 0 ? (
               <>
@@ -444,18 +444,6 @@ export const MainBudgetCard = ({
               : formatCurrency(safeRemainingToday)}
           </span>
         </div>
-      </div>
-
-      {/* Clickable Expand / Collapse Indicator */}
-      <div className="budget-expand-hint">
-        <span>{isExpanded ? 'Hide detailed breakdown' : 'Tap for daily safe limit & category budgets'}</span>
-        <ChevronDown
-          size={14}
-          style={{
-            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 0.25s ease',
-          }}
-        />
       </div>
 
       {/* Expandable Breakdown Drawer with Detailed Safe Zone Calculations */}
@@ -649,30 +637,24 @@ export const MainBudgetCard = ({
                             marginBottom: hasCatBudget ? '6px' : '0',
                             cursor: hasSub ? 'pointer' : 'default',
                             userSelect: 'none',
+                            gap: '6px',
                           }}
                           onClick={() => {
                             if (hasSub) toggleCategory(item.category);
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0, flexShrink: 1 }}>
                             <CategoryIcon name={item.icon} size={14} color={item.color || '#34D399'} />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontSize: '0.82rem', color: '#F1F5F9', fontWeight: 600 }}>
-                                {item.category}
-                              </span>
-                              {hasSub && (
-                                <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: 500 }}>
-                                  ({item.subCategories.length})
-                                </span>
-                              )}
-                            </div>
+                            <span style={{ fontSize: '0.82rem', color: '#F1F5F9', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {item.category}
+                            </span>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ fontSize: '0.78rem', color: '#E2E8F0', fontWeight: 700 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                            <div style={{ fontSize: '0.76rem', color: '#E2E8F0', fontWeight: 700, whiteSpace: 'nowrap' }}>
                               {formatCurrency(item.spent)}
                               {hasCatBudget && (
-                                <span style={{ color: '#94A3B8', fontWeight: 500 }}> / {formatCurrency(item.budget)}</span>
+                                <span style={{ color: '#94A3B8', fontWeight: 500, fontSize: '0.7rem' }}> / {formatCurrency(item.budget)}</span>
                               )}
                             </div>
 
@@ -691,6 +673,7 @@ export const MainBudgetCard = ({
                                   fontSize: '0.65rem',
                                   fontWeight: 600,
                                   padding: '1px 6px',
+                                  whiteSpace: 'nowrap',
                                   cursor: 'pointer',
                                 }}
                               >
@@ -701,13 +684,15 @@ export const MainBudgetCard = ({
                                 style={{
                                   fontSize: '0.65rem',
                                   fontWeight: 700,
+                                  whiteSpace: 'nowrap',
                                   color: isCatOver ? '#FB7185' : '#34D399',
                                   background: isCatOver ? 'rgba(251, 113, 133, 0.15)' : 'rgba(52, 211, 153, 0.15)',
                                   padding: '1px 5px',
                                   borderRadius: '4px',
+                                  flexShrink: 0,
                                 }}
                               >
-                                {isCatOver ? 'Over limit' : `${formatCurrency(item.budget - item.spent)} left`}
+                                {isCatOver ? 'Over' : `${formatCurrency(item.budget - item.spent)} left`}
                               </span>
                             )}
 
@@ -718,6 +703,7 @@ export const MainBudgetCard = ({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   color: '#94A3B8',
+                                  flexShrink: 0,
                                   transform: isSubExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                                   transition: 'transform 0.25s ease',
                                 }}
@@ -830,6 +816,18 @@ export const MainBudgetCard = ({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Clickable Expand / Collapse Indicator - Positioned at the bottom of the card */}
+      <div className="budget-expand-hint" onClick={toggleExpanded}>
+        <span>{isExpanded ? 'Hide detailed breakdown' : 'Tap for daily safe limit & category budgets'}</span>
+        <ChevronDown
+          size={14}
+          style={{
+            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.25s ease',
+          }}
+        />
       </div>
     </div>
   );

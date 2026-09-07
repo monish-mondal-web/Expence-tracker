@@ -115,12 +115,12 @@ export const CalendarView = ({ calendarData = {}, month, year }) => {
 
       {/* Selected Date Detail Drawer / Card */}
       <div style={{ background: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: '1.75rem', boxShadow: 'var(--shadow-card)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
           <div>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               Selected Date
             </span>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <h3 style={{ fontSize: '1.18rem', fontWeight: 800, color: 'var(--text-primary)', margin: '2px 0 0' }}>
               {formatFullDate(selectedDateStr)}
             </h3>
           </div>
@@ -129,10 +129,20 @@ export const CalendarView = ({ calendarData = {}, month, year }) => {
             type="button"
             className="btn-secondary"
             onClick={() => openAddExpense(selectedDateStr)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              padding: '0.5rem 0.85rem',
+              borderRadius: '8px',
+              flexShrink: 0,
+            }}
           >
-            <Plus size={16} />
-            Add Expense for Date
+            <Plus size={15} />
+            <span>Add Expense for Date</span>
           </button>
         </div>
 
