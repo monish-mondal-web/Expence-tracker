@@ -63,16 +63,27 @@ export const MainBudgetCard = ({
   const spentPercent = budget > 0 ? Math.min(100, Math.round((totalSpent / budget) * 100)) : 0;
   const remainingPercent = Math.max(0, 100 - spentPercent);
 
-  // Status badge matching safeZoneKey / safeZoneStatus
-  let statusText = safeZoneStatus || (totalSpent > budget ? 'OVER SAFE LIMIT' : 'ON TRACK');
-  statusText = statusText.replace(/[✓✔\u2713]/g, '').trim();
-
+  // Status badge logic: ONLY show 'OVER SAFE LIMIT' when today's spending has crossed the daily safe limit!
+  let statusText = 'ON TRACK';
   let statusDotColor = '#34D399'; // Emerald
-  if (safeZoneKey === 'exceeded' || totalSpent > budget || (effectiveSafeDaily > 0 && todaySpent > effectiveSafeDaily)) {
+
+  if (effectiveSafeDaily > 0 && todaySpent > effectiveSafeDaily) {
+    // Daily safe limit has finished / been exceeded
+    statusText = 'OVER SAFE LIMIT';
     statusDotColor = '#FB7185'; // Rose
-  } else if (safeZoneKey === 'approaching') {
+  } else if (effectiveSafeDaily > 0 && todaySpent >= effectiveSafeDaily * 0.85) {
+    statusText = 'APPROACHING LIMIT';
     statusDotColor = '#FBBF24'; // Amber
+  } else if (budget > 0 && remainingBudget <= 0 && todaySpent > 0) {
+    statusText = 'OVER SAFE LIMIT';
+    statusDotColor = '#FB7185'; // Rose
+  } else {
+    statusText = 'ON TRACK';
+    statusDotColor = '#34D399'; // Emerald
   }
+
+  const isOverLimit = statusText === 'OVER SAFE LIMIT';
+  const isApproaching = statusText === 'APPROACHING LIMIT';
 
   if (!hasBudget) {
     return (
@@ -168,7 +179,7 @@ export const MainBudgetCard = ({
           className="budget-progress-fill"
           style={{
             width: `${spentPercent}%`,
-            background: safeZoneKey === 'exceeded' ? '#FB7185' : safeZoneKey === 'approaching' ? '#FBBF24' : '#10B981',
+            background: isOverLimit ? '#FB7185' : isApproaching ? '#FBBF24' : '#10B981',
           }}
         />
       </div>

@@ -168,16 +168,20 @@ export const AppProvider = ({ children }) => {
       const updatedToday = isToday ? prev.todaySpent + payload.amount : prev.todaySpent;
       const updatedRemaining = Math.max(0, prev.monthlyBudget - updatedTotal);
       const budgetPct = prev.monthlyBudget > 0 ? Math.min(100, Math.round((updatedTotal / prev.monthlyBudget) * 1000) / 10) : 0;
-      const safeRemToday = prev.safeDailyBudget - updatedToday;
+      const effectiveLimit = prev.dynamicSafeDailyBudget || prev.safeDailyBudget || 0;
+      const safeRemToday = effectiveLimit - updatedToday;
 
       let safeKey = 'safe';
-      let safeStatus = 'SAFE ZONE';
-      if (updatedToday > prev.safeDailyBudget) {
+      let safeStatus = 'ON TRACK';
+      if (effectiveLimit > 0 && updatedToday > effectiveLimit) {
         safeKey = 'exceeded';
         safeStatus = 'OVER SAFE LIMIT';
-      } else if (updatedToday >= prev.safeDailyBudget * 0.8) {
+      } else if (effectiveLimit > 0 && updatedToday >= effectiveLimit * 0.85) {
         safeKey = 'approaching';
-        safeStatus = 'APPROACHING LIMIT ⚠️';
+        safeStatus = 'APPROACHING LIMIT';
+      } else if (prev.monthlyBudget > 0 && updatedRemaining <= 0) {
+        safeKey = 'exceeded';
+        safeStatus = 'OVER SAFE LIMIT';
       }
 
       return {
@@ -227,6 +231,20 @@ export const AppProvider = ({ children }) => {
       const updatedToday = isToday ? Math.max(0, prev.todaySpent - expense.amount) : prev.todaySpent;
       const updatedRemaining = prev.monthlyBudget - updatedTotal;
       const budgetPct = prev.monthlyBudget > 0 ? Math.min(100, Math.round((updatedTotal / prev.monthlyBudget) * 1000) / 10) : 0;
+      const effectiveLimit = prev.dynamicSafeDailyBudget || prev.safeDailyBudget || 0;
+
+      let safeKey = 'safe';
+      let safeStatus = 'ON TRACK';
+      if (effectiveLimit > 0 && updatedToday > effectiveLimit) {
+        safeKey = 'exceeded';
+        safeStatus = 'OVER SAFE LIMIT';
+      } else if (effectiveLimit > 0 && updatedToday >= effectiveLimit * 0.85) {
+        safeKey = 'approaching';
+        safeStatus = 'APPROACHING LIMIT';
+      } else if (prev.monthlyBudget > 0 && updatedRemaining <= 0) {
+        safeKey = 'exceeded';
+        safeStatus = 'OVER SAFE LIMIT';
+      }
 
       return {
         ...prev,
@@ -234,6 +252,9 @@ export const AppProvider = ({ children }) => {
         todaySpent: updatedToday,
         remainingBudget: updatedRemaining,
         budgetUsedPercentage: budgetPct,
+        safeRemainingToday: effectiveLimit - updatedToday,
+        safeZoneKey: safeKey,
+        safeZoneStatus: safeStatus,
         recentExpenses: prev.recentExpenses.filter((e) => e._id !== expense._id),
       };
     });

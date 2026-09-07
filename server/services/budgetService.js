@@ -43,44 +43,53 @@ function calculateMetrics({
   // 7. Dynamic Safe Daily Budget: dynamicDailyBudget * 0.70
   const dynamicSafeDailyBudget = Math.round((dynamicDailyBudget * 0.70) * 100) / 100;
 
+  // Effective daily safe target: use dynamic daily safe limit if available
+  const effectiveDailySafeLimit = dynamicSafeDailyBudget > 0 ? dynamicSafeDailyBudget : safeDailyBudget;
+
   // 8. Safe remaining for today
-  const safeRemainingToday = Math.round((safeDailyBudget - today) * 100) / 100;
+  const safeRemainingToday = Math.round((effectiveDailySafeLimit - today) * 100) / 100;
 
   // 9. Average daily spend so far
   const averageDailySpend = elapsedDays > 0 ? Math.round((spent / elapsedDays) * 100) / 100 : 0;
 
-  // 10. Safe Zone Status Evaluation
-  let safeZoneStatus = 'SAFE ZONE';
+  // 10. Safe Zone Status Evaluation (OVER SAFE LIMIT triggers strictly when daily safe limit is exhausted)
+  let safeZoneStatus = 'ON TRACK';
   let safeZoneKey = 'safe'; // 'safe' | 'approaching' | 'exceeded'
   let safeZoneMessage = "You're within today's safe spending limit.";
 
   if (budget > 0) {
-    if (today > safeDailyBudget) {
+    if (effectiveDailySafeLimit > 0 && today > effectiveDailySafeLimit) {
       safeZoneStatus = 'OVER SAFE LIMIT';
       safeZoneKey = 'exceeded';
-      safeZoneMessage = "You've crossed today's safe limit. Consider spending less on upcoming days.";
-    } else if (today >= safeDailyBudget * 0.80 && safeDailyBudget > 0) {
+      safeZoneMessage = "You've crossed today's safe limit. Try to spend less on upcoming days.";
+    } else if (remainingBudget <= 0 && today > 0) {
+      safeZoneStatus = 'OVER SAFE LIMIT';
+      safeZoneKey = 'exceeded';
+      safeZoneMessage = "Monthly budget reached. You have crossed your safe spending limit.";
+    } else if (effectiveDailySafeLimit > 0 && today >= effectiveDailySafeLimit * 0.85) {
       safeZoneStatus = 'APPROACHING LIMIT';
       safeZoneKey = 'approaching';
       safeZoneMessage = "You're getting close to today's safe spending limit.";
     } else {
-      safeZoneStatus = 'SAFE ZONE';
+      safeZoneStatus = 'ON TRACK';
       safeZoneKey = 'safe';
-      safeZoneMessage = "You're within today's safe spending limit.";
+      safeZoneMessage = today === 0
+        ? "No food expenses logged yet today. You have a safe daily limit ready."
+        : "You're within today's safe spending limit. Great job!";
     }
   }
 
   // 11. Smart Daily Message
   let smartMessage = "Set your monthly food budget to start tracking your daily food expenses.";
   if (budget > 0) {
-    if (remainingBudget <= 0) {
-      smartMessage = "Monthly budget reached. Consider moderating expenses for the rest of the month.";
-    } else if (today > safeDailyBudget) {
+    if (effectiveDailySafeLimit > 0 && today > effectiveDailySafeLimit) {
       smartMessage = "You've crossed today's safe limit. Try to spend less on upcoming days.";
-    } else if (today >= safeDailyBudget * 0.80) {
+    } else if (remainingBudget <= 0 && today > 0) {
+      smartMessage = "Monthly budget reached. Consider moderating food expenses for the rest of the month.";
+    } else if (effectiveDailySafeLimit > 0 && today >= effectiveDailySafeLimit * 0.85) {
       smartMessage = "You're close to today's safe limit. Watch out for any remaining food spend today.";
-    } else if (today > 0 && dynamicSafeDailyBudget > 0 && today <= dynamicSafeDailyBudget) {
-      smartMessage = "You stayed under today's recommendation. This gives you more flexibility for the remaining days.";
+    } else if (today > 0 && effectiveDailySafeLimit > 0 && today <= effectiveDailySafeLimit) {
+      smartMessage = "You stayed under today's safe limit. This gives you more flexibility for upcoming days.";
     } else if (today === 0) {
       smartMessage = "No food expenses logged yet today. You have a safe daily limit ready.";
     } else {
