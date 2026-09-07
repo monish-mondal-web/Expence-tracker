@@ -1,14 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { uploadImageToImgBB } from '../utils/imgbb';
 import {
   Mail,
   Lock,
   User,
   Eye,
   EyeOff,
-  Camera,
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
@@ -37,7 +35,7 @@ export const AuthScreen = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(CARTOON_AVATAR_PRESETS[0]);
 
   // Forgot password flow
   const [forgotStep, setForgotStep] = useState(1);
@@ -49,30 +47,6 @@ export const AuthScreen = () => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const fileInputRef = useRef(null);
-
-  // Handle local file image upload (with ImgBB support)
-  const handleImageChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Image file is too large. Please select an image under 5MB.', 'error');
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const res = await uploadImageToImgBB(file);
-      if (res?.url) {
-        setAvatarPreview(res.url);
-      }
-    } catch (err) {
-      showToast('Failed to process photo.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -264,36 +238,17 @@ export const AuthScreen = () => {
         {/* ================= MODE: SIGNUP ================= */}
         {mode === 'signup' && (
           <form onSubmit={handleSignupSubmit} className="auth-form">
-            {/* Profile Image Uploader ("signup e img o chawa hbe") */}
+            {/* Avatar Picker Only */}
             <div className="avatar-uploader-section">
-              <div
-                className="avatar-preview-circle"
-                onClick={() => fileInputRef.current?.click()}
-                title="Click to upload profile photo"
-              >
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Profile" className="avatar-preview-img" />
-                ) : (
-                  <div className="avatar-placeholder">
-                    <Camera size={24} color="#64748B" />
-                    <span>Photo</span>
-                  </div>
-                )}
-                <div className="avatar-camera-badge">
-                  <Camera size={12} color="#FFFFFF" />
-                </div>
+              <div className="avatar-preview-circle" title="Selected Profile Avatar">
+                <img
+                  src={avatarPreview || CARTOON_AVATAR_PRESETS[0]}
+                  alt="Profile"
+                  className="avatar-preview-img"
+                />
               </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={handleImageChange}
-              />
-
               <div className="avatar-presets-tray">
-                <span className="avatar-presets-label">Choose avatar (2 Male, 1 Female, 1 Robot, 1 Fun Character) or upload photo:</span>
                 <div className="avatar-presets-row">
                   {CARTOON_AVATAR_PRESETS.map((presetUrl, idx) => {
                     const presetTitle =
@@ -319,8 +274,6 @@ export const AuthScreen = () => {
                   })}
                 </div>
               </div>
-
-
             </div>
 
             {/* Full Name */}

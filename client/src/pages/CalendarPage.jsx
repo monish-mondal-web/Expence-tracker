@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { CalendarView } from '../components/CalendarView';
 import { formatCurrency } from '../utils/currency';
 import { formatMonthYear } from '../utils/date';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 
 export const CalendarPage = () => {
   const { currentMonth, currentYear, refreshKey } = useApp();
@@ -76,8 +76,23 @@ export const CalendarPage = () => {
 
       {/* Calendar Grid View */}
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-          Loading calendar view...
+        <div
+          style={{
+            minHeight: '440px',
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-xl)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+          }}
+        >
+          <Loader2 size={36} color="#059669" className="animate-spin" />
+          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#64748B' }}>
+            Loading calendar schedule...
+          </span>
         </div>
       ) : (
         <CalendarView

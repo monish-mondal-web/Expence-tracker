@@ -10,7 +10,63 @@ export const AppProvider = ({ children }) => {
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [todayDate] = useState(toLocalISODate(now));
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const getTabFromPath = () => {
+    if (typeof window === 'undefined') return 'dashboard';
+    const cleanPath = window.location.pathname.toLowerCase().replace(/^\/+|\/+$/g, '');
+    if (!cleanPath || cleanPath === 'dashboard' || cleanPath === 'home') return 'dashboard';
+    if (cleanPath === 'budget' || cleanPath === 'analytics') return 'budget';
+    if (cleanPath === 'expenses') return 'expenses';
+    if (cleanPath === 'calendar') return 'calendar';
+    if (cleanPath === 'settings' || cleanPath === 'more') return 'settings';
+    return 'dashboard';
+  };
+
+  const getPathFromTab = (tab) => {
+    switch (tab) {
+      case 'dashboard':
+        return '/';
+      case 'budget':
+      case 'analytics':
+        return '/budget';
+      case 'expenses':
+        return '/expenses';
+      case 'calendar':
+        return '/calendar';
+      case 'settings':
+      case 'more':
+        return '/settings';
+      default:
+        return '/';
+    }
+  };
+
+  const [activeTab, setActiveTabState] = useState(getTabFromPath);
+
+  const setActiveTab = useCallback((tab, replace = false) => {
+    const canonicalTab = tab === 'analytics' ? 'budget' : tab;
+    setActiveTabState(canonicalTab);
+    if (typeof window !== 'undefined') {
+      const targetPath = getPathFromTab(canonicalTab);
+      if (window.location.pathname !== targetPath) {
+        if (replace) {
+          window.history.replaceState({ tab: canonicalTab }, '', targetPath);
+        } else {
+          window.history.pushState({ tab: canonicalTab }, '', targetPath);
+        }
+      }
+    }
+  }, []);
+
+  // Listen for browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      const tab = getTabFromPath();
+      setActiveTabState(tab);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Cached dashboard state for instant optimistic updates

@@ -73,6 +73,19 @@
   text-shadow: none !important;
 }
 
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 0.8s linear infinite;
+}
+
 html, body {
   background-color: var(--color-canvas);
   color: var(--text-primary);
@@ -3178,6 +3191,45 @@ button, input, select, textarea {
   color: #0F172A;
 }
 
+.header-avatar-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.header-avatar-btn:hover {
+  border-color: #059669;
+  transform: scale(1.05);
+}
+
+.header-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.header-avatar-fallback {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #0F172A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #F1F5F9;
+}
+
 .header-icon-btn.active {
   background: #E6F7ED;
   border-color: #A7F3D0;
@@ -3446,15 +3498,16 @@ button, input, select, textarea {
 }
 
 .budget-metrics-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
   transition: all 0.15s ease;
   border-radius: 10px;
-  padding: 10px 6px 4px;
+  padding: 10px 8px 4px;
 }
 
 .budget-metrics-row:hover {
@@ -3464,7 +3517,25 @@ button, input, select, textarea {
 .budget-metric-col {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.budget-metric-col-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.budget-metrics-row:hover .budget-metric-col-toggle {
+  background: rgba(52, 211, 153, 0.15);
 }
 
 .metric-col-icon {

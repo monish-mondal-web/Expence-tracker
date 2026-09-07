@@ -93,7 +93,7 @@ export const DashboardPage = () => {
           {/* 5. Top Categories This Month */}
           <TopCategories
             expenses={dashboardData?.recentExpenses || []}
-            onSeeAll={() => setActiveTab('expenses')}
+            onSeeAll={() => setActiveTab('budget')}
             onCategoryClick={() => setActiveTab('expenses')}
           />
         </>

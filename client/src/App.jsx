@@ -38,7 +38,7 @@ const AppContent = () => {
     <MainLayout>
       {activeTab === 'dashboard' && <DashboardPage />}
       {activeTab === 'expenses' && <ExpensesPage />}
-      {activeTab === 'analytics' && <AnalyticsPage />}
+      {(activeTab === 'budget' || activeTab === 'analytics') && <AnalyticsPage />}
       {activeTab === 'calendar' && <CalendarPage />}
       {activeTab === 'settings' && <SettingsPage />}
     </MainLayout>

@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { CategoryIcon, AVAILABLE_ICONS } from '../components/CategoryIcon';
 import { CARTOON_AVATAR_PRESETS } from '../components/AuthScreen';
-import { uploadImageToImgBB } from '../utils/imgbb';
-import { Target, DollarSign, Tag, Plus, Trash2, User, Camera, Upload, Loader2 } from 'lucide-react';
+import { Target, DollarSign, Tag, Plus, Trash2, User, Loader2 } from 'lucide-react';
 
 export const SettingsPage = () => {
   const {
@@ -20,41 +19,12 @@ export const SettingsPage = () => {
   const [profileName, setProfileName] = useState(user?.name || '');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || CARTOON_AVATAR_PRESETS[0]);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (user?.name) setProfileName(user.name);
     if (user?.avatar) setSelectedAvatar(user.avatar);
   }, [user]);
 
-  const handleCustomPhotoSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('Image size should be under 5MB', 'error');
-      return;
-    }
-
-    try {
-      setIsUploadingPhoto(true);
-      const res = await uploadImageToImgBB(file);
-      if (res?.url) {
-        setSelectedAvatar(res.url);
-        if (res.isImgBB) {
-          showToast('Profile photo uploaded to ImgBB!');
-        } else {
-          showToast('Profile photo set!');
-        }
-      }
-    } catch (err) {
-      showToast(err.message || 'Failed to upload photo', 'error');
-    } finally {
-      setIsUploadingPhoto(false);
-    }
-  };
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -142,66 +112,28 @@ export const SettingsPage = () => {
 
         <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-            {/* Avatar Preview with Camera Button */}
-            <div style={{ position: 'relative' }}>
-              <div
-                style={{
-                  width: '72px',
-                  height: '72px',
-                  borderRadius: '50%',
-                  background: '#F1F5F9',
-                  border: '3px solid #0F172A',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                }}
-              >
-                {isUploadingPhoto ? (
-                  <Loader2 size={24} className="animate-spin" color="#0F172A" />
-                ) : selectedAvatar ? (
-                  <img src={selectedAvatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0F172A' }}>
-                    {profileName?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-                title="Upload custom photo to ImgBB"
-                style={{
-                  position: 'absolute',
-                  bottom: '-2px',
-                  right: '-2px',
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  background: '#0F172A',
-                  color: '#FFFFFF',
-                  border: '2px solid #FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                }}
-              >
-                <Camera size={14} />
-              </button>
-
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleCustomPhotoSelect}
-                accept="image/*"
-                style={{ display: 'none' }}
-              />
+            {/* Avatar Preview */}
+            <div
+              style={{
+                width: '68px',
+                height: '68px',
+                borderRadius: '50%',
+                background: '#F1F5F9',
+                border: '2.5px solid #0F172A',
+                overflow: 'hidden',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {selectedAvatar ? (
+                <img src={selectedAvatar} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0F172A' }}>
+                  {profileName?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
+              )}
             </div>
 
             <div style={{ flex: 1 }}>
@@ -220,23 +152,11 @@ export const SettingsPage = () => {
             </div>
           </div>
 
-          {/* Custom Photo Upload & Presets */}
+          {/* Avatar Presets Picker */}
           <div style={{ background: 'var(--color-surface-subtle)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <label className="form-label" style={{ margin: 0, fontWeight: 700 }}>
-                Upload Custom Photo or Pick Cartoon Avatar:
-              </label>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploadingPhoto}
-                className="btn-secondary"
-                style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-              >
-                {isUploadingPhoto ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                <span>{isUploadingPhoto ? 'Uploading to ImgBB...' : 'Upload Photo'}</span>
-              </button>
-            </div>
+            <label className="form-label" style={{ marginBottom: '0.6rem', fontWeight: 700, display: 'block' }}>
+              Select Profile Avatar:
+            </label>
 
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {CARTOON_AVATAR_PRESETS.map((avatarUrl, idx) => {
@@ -263,28 +183,20 @@ export const SettingsPage = () => {
                       borderRadius: '50%',
                       background: '#FFFFFF',
                       cursor: 'pointer',
-                      border: selectedAvatar === avatarUrl ? '2.5px solid #0F172A' : '2px solid transparent',
-                      boxShadow: selectedAvatar === avatarUrl ? '0 0 0 2px rgba(15, 23, 42, 0.2)' : 'none',
+                      border: selectedAvatar === avatarUrl ? '2.5px solid #059669' : '2px solid transparent',
                       transform: selectedAvatar === avatarUrl ? 'scale(1.1)' : 'scale(1)',
                       transition: 'all 0.15s ease',
                     }}
                   />
                 );
               })}
-
-              {!CARTOON_AVATAR_PRESETS.includes(selectedAvatar) && selectedAvatar && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: '0.5rem', background: '#FFFFFF', padding: '0.25rem 0.6rem', borderRadius: '20px', border: '1.5px solid #0F172A' }}>
-                  <img src={selectedAvatar} alt="Custom" style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0F172A' }}>Custom Photo Active</span>
-                </div>
-              )}
             </div>
           </div>
 
           <button
             type="submit"
             className="btn-primary"
-            disabled={isSavingProfile || isUploadingPhoto}
+            disabled={isSavingProfile}
             style={{ width: 'auto', alignSelf: 'flex-start', margin: 0, padding: '0.65rem 1.4rem' }}
           >
             {isSavingProfile ? 'Saving...' : 'Save Profile'}

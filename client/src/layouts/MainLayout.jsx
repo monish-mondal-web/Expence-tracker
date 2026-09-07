@@ -16,7 +16,6 @@ import {
   Menu,
   Plus,
   CalendarDays,
-  Bell,
   ChevronLeft,
   ChevronRight,
   Leaf,
@@ -64,20 +63,7 @@ export const MainLayout = ({ children }) => {
         {/* 1. Header matching reference image */}
         <header className="fintech-header">
           <div className="header-top-row">
-            {/* Left: User Avatar */}
-            <div
-              className="header-avatar"
-              onClick={() => setIsProfileDrawerOpen(true)}
-              title="View Account & Profile"
-            >
-              {user?.avatar ? (
-                <img src={user.avatar} alt={displayName} className="avatar-img" />
-              ) : (
-                <div className="avatar-placeholder">{displayInitials}</div>
-              )}
-            </div>
-
-            {/* Center: Greeting, Name */}
+            {/* Left: Greeting, Name */}
             <div className="header-user-info">
               <span className="header-greeting-lbl">{getGreeting()}</span>
               <h1 className="header-name-title">
@@ -86,7 +72,7 @@ export const MainLayout = ({ children }) => {
               </h1>
             </div>
 
-            {/* Right: Calendar & Notification buttons */}
+            {/* Right: Calendar & Profile Avatar button */}
             <div className="header-action-buttons">
               <button
                 type="button"
@@ -100,13 +86,16 @@ export const MainLayout = ({ children }) => {
 
               <button
                 type="button"
-                className="header-icon-btn notification"
+                className="header-avatar-btn"
                 onClick={() => setIsProfileDrawerOpen(true)}
-                title="Account Settings"
-                aria-label="Account Settings"
+                title="Account & Profile Settings"
+                aria-label="Account and Profile Settings"
               >
-                <Bell size={18} />
-                <span className="notification-dot" />
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={displayName} className="header-avatar-img" />
+                ) : (
+                  <div className="header-avatar-fallback">{displayInitials}</div>
+                )}
               </button>
             </div>
           </div>
@@ -162,11 +151,11 @@ export const MainLayout = ({ children }) => {
           {/* Slot 2: Budget */}
           <button
             type="button"
-            className={`bottom-nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
-            onClick={() => setActiveTab('calendar')}
+            className={`bottom-nav-item ${activeTab === 'budget' || activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('budget')}
           >
             <div className="nav-icon-box">
-              <PieChart size={20} strokeWidth={activeTab === 'calendar' ? 2.4 : 1.8} />
+              <PieChart size={20} strokeWidth={activeTab === 'budget' || activeTab === 'analytics' ? 2.4 : 1.8} />
             </div>
             <span className="nav-text">Budget</span>
           </button>

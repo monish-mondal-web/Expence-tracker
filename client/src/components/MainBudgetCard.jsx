@@ -6,7 +6,6 @@ import {
   CalendarDays,
   TrendingUp,
   ShieldCheck,
-  Compass,
   ChevronDown,
 } from 'lucide-react';
 
@@ -232,7 +231,7 @@ export const MainBudgetCard = ({
           </div>
         </div>
 
-        {/* Metric 2: Your Average (Distinct) */}
+        {/* Metric 2: Your Average */}
         <div className="budget-metric-col">
           <div className="metric-col-icon">
             <TrendingUp size={15} color="#34D399" />
@@ -243,23 +242,12 @@ export const MainBudgetCard = ({
           </div>
         </div>
 
-        {/* Metric 3: Pace vs Expected (Distinct + Chevron toggle) */}
-        <div className="budget-metric-col">
-          <div className={`metric-col-icon ${isUnderExpected ? '' : 'pink'}`}>
-            <Compass size={15} color={isUnderExpected ? '#34D399' : '#FB7185'} />
-          </div>
-          <div className="metric-col-content">
-            <div className="metric-col-val with-info">
-              <span>{formatCurrency(underExpectedAmount)}</span>
-              <ChevronDown
-                size={14}
-                className={`metric-chevron ${isExpanded ? 'rotated' : ''}`}
-              />
-            </div>
-            <div className="metric-col-label">
-              {isUnderExpected ? 'Under expected' : 'Over expected'}
-            </div>
-          </div>
+        {/* Dynamic Safe Limit breakdown toggle */}
+        <div className="budget-metric-col-toggle" title="View safe limit formula and breakdown">
+          <ChevronDown
+            size={16}
+            className={`metric-chevron ${isExpanded ? 'rotated' : ''}`}
+          />
         </div>
       </div>
 
