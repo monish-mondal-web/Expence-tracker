@@ -3,15 +3,9 @@ const Category = require('../models/Category');
 
 const DEFAULT_CATEGORIES = [
   { name: 'Food & Dining', icon: 'Utensils', color: '#10B981' },
-  { name: 'Travel', icon: 'Car', color: '#3B82F6' },
-  { name: 'Tour', icon: 'Plane', color: '#06B6D4' },
   { name: 'Room Rent', icon: 'Home', color: '#6366F1' },
-  { name: 'Health', icon: 'HeartPulse', color: '#EF4444' },
   { name: 'Gym', icon: 'Dumbbell', color: '#F59E0B' },
-  { name: 'Shopping', icon: 'ShoppingBag', color: '#EC4899' },
-  { name: 'Bills & Utilities', icon: 'Zap', color: '#EAB308' },
-  { name: 'Groceries', icon: 'ShoppingCart', color: '#14B8A6' },
-  { name: 'Other', icon: 'MoreHorizontal', color: '#64748B' },
+  { name: 'Travel', icon: 'Car', color: '#3B82F6' },
 ];
 
 const getOrCreateDefaultUser = async () => {
@@ -24,11 +18,17 @@ const getOrCreateDefaultUser = async () => {
     });
   }
 
-  // Ensure all default categories exist
+  // Remove old default Groceries if it was created as a top level space category
+  await Category.deleteMany({
+    name: { $in: ['Groceries', 'groceries'] },
+    userId: null,
+  });
+
+  // Ensure core spaces exist
   for (const c of DEFAULT_CATEGORIES) {
     const exists = await Category.findOne({
       $or: [{ userId: null }, { userId: user._id }],
-      name: c.name,
+      name: { $regex: new RegExp(`^${c.name}$`, 'i') },
     });
     if (!exists) {
       await Category.create({

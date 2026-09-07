@@ -26,7 +26,16 @@ exports.getExpenses = async (req, res, next) => {
 
     // Category filter
     if (category && category !== 'All') {
-      query.category = category;
+      const catLower = category.toLowerCase().trim();
+      if (catLower === 'food & dining' || catLower === 'food') {
+        const foodSubRegexes = [
+          'food', 'dining', 'breakfast', 'lunch', 'dinner', 'snacks',
+          'groceries', 'fruits', 'vegetables', 'meat', 'fish', 'drinks', 'coffee', 'tea'
+        ].join('|');
+        query.category = { $regex: new RegExp(foodSubRegexes, 'i') };
+      } else {
+        query.category = { $regex: new RegExp(`^${category.trim()}$`, 'i') };
+      }
     }
 
     // Search query in note or category

@@ -101,8 +101,9 @@ export const SetBudgetModal = () => {
     setCategoryBudgetsMap((prev) => ({
       ...prev,
       'Food & Dining': prev['Food & Dining'] || 3000,
-      'Travel': prev['Travel'] || 1000,
       'Room Rent': prev['Room Rent'] || 5000,
+      'Gym': prev['Gym'] || 1500,
+      'Travel': prev['Travel'] || 1000,
     }));
   };
 
@@ -272,38 +273,66 @@ export const SetBudgetModal = () => {
 
               {/* Horizontal wrapping chips */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                {categories.map((cat) => {
-                  const isPicked = categoryBudgetsMap[cat.name] !== undefined;
-                  return (
-                    <button
-                      key={cat._id || cat.name}
-                      type="button"
-                      onClick={() => handleToggleCategory(cat.name)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 10px',
-                        borderRadius: '20px',
-                        border: isPicked ? '1.5px solid #10B981' : '1px solid #E2E8F0',
-                        background: isPicked ? '#ECFDF5' : '#FFFFFF',
-                        color: isPicked ? '#065F46' : '#334155',
-                        fontSize: '0.78rem',
-                        fontWeight: isPicked ? 700 : 500,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <CategoryIcon name={cat.icon} size={14} color={isPicked ? '#059669' : (cat.color || '#64748B')} />
-                      <span>{cat.name}</span>
-                      {isPicked ? (
-                        <Check size={13} color="#059669" strokeWidth={3} />
-                      ) : (
-                        <Plus size={12} color="#94A3B8" />
-                      )}
-                    </button>
-                  );
-                })}
+                {(() => {
+                  const FOOD_SUB_NAMES = new Set([
+                    'groceries', 'meat / fish', 'meat', 'fish', 'snacks', 'breakfast',
+                    'lunch', 'dinner', 'drinks', 'fruits & vegetables', 'fruits', 'vegetables',
+                    'coffee', 'tea', 'beverages'
+                  ]);
+                  const CORE_SPACES = [
+                    { name: 'Food & Dining', icon: 'Utensils', color: '#10B981' },
+                    { name: 'Room Rent', icon: 'Home', color: '#6366F1' },
+                    { name: 'Gym', icon: 'Dumbbell', color: '#F59E0B' },
+                    { name: 'Travel', icon: 'Car', color: '#3B82F6' },
+                  ];
+                  const availableSpaces = [];
+                  const addedSpaces = new Set();
+                  CORE_SPACES.forEach((cs) => {
+                    const fromCat = categories.find((c) => c.name.toLowerCase() === cs.name.toLowerCase());
+                    availableSpaces.push(fromCat || cs);
+                    addedSpaces.add(cs.name.toLowerCase());
+                  });
+                  categories.forEach((cat) => {
+                    const lower = cat.name.toLowerCase().trim();
+                    if (!addedSpaces.has(lower) && !FOOD_SUB_NAMES.has(lower)) {
+                      availableSpaces.push(cat);
+                      addedSpaces.add(lower);
+                    }
+                  });
+
+                  return availableSpaces.map((cat) => {
+                    const isPicked = categoryBudgetsMap[cat.name] !== undefined;
+                    return (
+                      <button
+                        key={cat._id || cat.name}
+                        type="button"
+                        onClick={() => handleToggleCategory(cat.name)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 10px',
+                          borderRadius: '20px',
+                          border: isPicked ? '1.5px solid #10B981' : '1px solid #E2E8F0',
+                          background: isPicked ? '#ECFDF5' : '#FFFFFF',
+                          color: isPicked ? '#065F46' : '#334155',
+                          fontSize: '0.78rem',
+                          fontWeight: isPicked ? 700 : 500,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <CategoryIcon name={cat.icon} size={14} color={isPicked ? '#059669' : (cat.color || '#64748B')} />
+                        <span>{cat.name}</span>
+                        {isPicked ? (
+                          <Check size={13} color="#059669" strokeWidth={3} />
+                        ) : (
+                          <Plus size={12} color="#94A3B8" />
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
             </div>
 

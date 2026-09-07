@@ -131,34 +131,96 @@ exports.getDashboardData = async (req, res, next) => {
       };
     }).sort((a, b) => (b.budget || b.spent) - (a.budget || a.spent));
 
-    // 7. Multi-Space Summary with individual metrics per space
-    const allKnownSpaces = new Map();
-    allCategoriesMeta.forEach((c) => {
-      allKnownSpaces.set(c.name, {
-        name: c.name,
-        icon: c.icon || 'Utensils',
-        color: c.color || '#10B981',
-      });
+    // 7. Space Hierarchy: Group food subcategories into "Food & Dining" space, separate Room Rent, Gym, Travel
+    const FOOD_SUB_CATEGORIES = [
+      'breakfast', 'lunch', 'dinner', 'snacks', 'groceries', 'fruits',
+      'vegetables', 'meat / fish', 'meat', 'fish', 'drinks', 'coffee', 'tea'
+    ];
+
+    const isFoodSubCategory = (catName = '') => {
+      const lower = catName.toLowerCase().trim();
+      return lower === 'food & dining' || lower === 'food' || FOOD_SUB_CATEGORIES.some((f) => lower.includes(f));
+    };
+
+    // Calculate aggregated Food & Dining totals from all food subcategories
+    const foodExpenses = expenses.filter((e) => isFoodSubCategory(e.category || 'Other'));
+    const foodTotalSpent = foodExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const foodTodaySpent = foodExpenses.filter((e) => {
+      const eDate = new Date(e.date);
+      return eDate >= todayStart && eDate <= todayEnd;
+    }).reduce((sum, e) => sum + e.amount, 0);
+    const foodDaysTracked = new Set(foodExpenses.map((e) => new Date(e.date).toISOString().slice(0, 10))).size;
+
+    const foodBudgetAmount = budgetMap['Food & Dining'] || budgetMap['Food'] || (
+      // If no explicit Food & Dining key, default to monthly budget or sum of food subcategory budgets
+      monthlyBudgetAmount > 0 && !budgetMap['Room Rent'] && !budgetMap['Gym'] ? monthlyBudgetAmount : 0
+    );
+
+    const foodSpaceMetrics = calculateMetrics({
+      monthlyBudgetAmount: foodBudgetAmount,
+      totalSpent: foodTotalSpent,
+      todaySpent: foodTodaySpent,
+      elapsedDays,
+      daysTracked: foodDaysTracked,
     });
 
-    allCategoryNames.forEach((catName) => {
-      if (!allKnownSpaces.has(catName)) {
-        allKnownSpaces.set(catName, {
-          name: catName,
-          icon: metaMap[catName]?.icon || 'Utensils',
-          color: metaMap[catName]?.color || '#64748B',
+    // Core top-level spaces
+    const defaultTopSpaces = [
+      {
+        name: 'Food & Dining',
+        icon: 'Utensils',
+        color: '#10B981',
+        hasBudget: foodBudgetAmount > 0,
+        monthlyBudget: foodBudgetAmount,
+        totalSpent: foodTotalSpent,
+        todaySpent: foodTodaySpent,
+        remainingBudget: foodBudgetAmount > 0 ? Math.round((foodBudgetAmount - foodTotalSpent) * 100) / 100 : 0,
+        count: foodExpenses.length,
+        ...foodSpaceMetrics,
+      },
+      {
+        name: 'Room Rent',
+        icon: 'Home',
+        color: '#6366F1',
+      },
+      {
+        name: 'Gym',
+        icon: 'Dumbbell',
+        color: '#F59E0B',
+      },
+      {
+        name: 'Travel',
+        icon: 'Car',
+        color: '#3B82F6',
+      },
+    ];
+
+    // Collect custom spaces (anything that is NOT a food subcategory and not in default top spaces)
+    const knownTopNames = new Set(defaultTopSpaces.map((s) => s.name.toLowerCase()));
+    const customSpaces = [];
+
+    allCategoriesMeta.forEach((c) => {
+      const lower = c.name.toLowerCase().trim();
+      if (!isFoodSubCategory(lower) && !knownTopNames.has(lower)) {
+        customSpaces.push({
+          name: c.name,
+          icon: c.icon || 'Sparkles',
+          color: c.color || '#EC4899',
         });
+        knownTopNames.add(lower);
       }
     });
 
-    const spaces = Array.from(allKnownSpaces.values()).map((catMeta) => {
-      const catName = catMeta.name;
-      const bAmount = Math.round((budgetMap[catName] || 0) * 100) / 100;
-      const sAmount = Math.round((categoryTotals[catName] || 0) * 100) / 100;
-      const tSpent = Math.round((todayCategoryTotals[catName] || 0) * 100) / 100;
-      const sDays = new Set(
-        expenses.filter((e) => (e.category || 'Other') === catName).map((e) => new Date(e.date).toISOString().slice(0, 10))
-      ).size;
+    // Combine all top spaces and calculate individual metrics for non-food spaces
+    const allTopSpaces = [...defaultTopSpaces.slice(0, 1), ...defaultTopSpaces.slice(1).map((s) => {
+      const bAmount = Math.round((budgetMap[s.name] || 0) * 100) / 100;
+      const sExpenses = expenses.filter((e) => (e.category || 'Other').toLowerCase() === s.name.toLowerCase());
+      const sAmount = sExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const tSpent = sExpenses.filter((e) => {
+        const eDate = new Date(e.date);
+        return eDate >= todayStart && eDate <= todayEnd;
+      }).reduce((sum, e) => sum + e.amount, 0);
+      const sDays = new Set(sExpenses.map((e) => new Date(e.date).toISOString().slice(0, 10))).size;
 
       const spaceMetrics = calculateMetrics({
         monthlyBudgetAmount: bAmount,
@@ -169,18 +231,44 @@ exports.getDashboardData = async (req, res, next) => {
       });
 
       return {
-        name: catName,
-        icon: catMeta.icon,
-        color: catMeta.color,
+        ...s,
         hasBudget: bAmount > 0,
         monthlyBudget: bAmount,
         totalSpent: sAmount,
         todaySpent: tSpent,
         remainingBudget: bAmount > 0 ? Math.round((bAmount - sAmount) * 100) / 100 : 0,
-        count: categoryCounts[catName] || 0,
+        count: sExpenses.length,
         ...spaceMetrics,
       };
-    });
+    }), ...customSpaces.map((s) => {
+      const bAmount = Math.round((budgetMap[s.name] || 0) * 100) / 100;
+      const sExpenses = expenses.filter((e) => (e.category || 'Other').toLowerCase() === s.name.toLowerCase());
+      const sAmount = sExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const tSpent = sExpenses.filter((e) => {
+        const eDate = new Date(e.date);
+        return eDate >= todayStart && eDate <= todayEnd;
+      }).reduce((sum, e) => sum + e.amount, 0);
+      const sDays = new Set(sExpenses.map((e) => new Date(e.date).toISOString().slice(0, 10))).size;
+
+      const spaceMetrics = calculateMetrics({
+        monthlyBudgetAmount: bAmount,
+        totalSpent: sAmount,
+        todaySpent: tSpent,
+        elapsedDays,
+        daysTracked: sDays,
+      });
+
+      return {
+        ...s,
+        hasBudget: bAmount > 0,
+        monthlyBudget: bAmount,
+        totalSpent: sAmount,
+        todaySpent: tSpent,
+        remainingBudget: bAmount > 0 ? Math.round((bAmount - sAmount) * 100) / 100 : 0,
+        count: sExpenses.length,
+        ...spaceMetrics,
+      };
+    })];
 
     // 8. Space Filtering
     const qSpace = req.query.space;
@@ -188,10 +276,14 @@ exports.getDashboardData = async (req, res, next) => {
     let filteredRecentExpenses = expenses.slice(0, 8);
 
     if (qSpace && qSpace !== 'All') {
-      const activeSpaceObj = spaces.find((s) => s.name.toLowerCase() === qSpace.toLowerCase());
+      const activeSpaceObj = allTopSpaces.find((s) => s.name.toLowerCase() === qSpace.toLowerCase());
       if (activeSpaceObj) {
         activeSpaceData = activeSpaceObj;
-        filteredRecentExpenses = expenses.filter((e) => (e.category || 'Other').toLowerCase() === qSpace.toLowerCase()).slice(0, 8);
+        if (isFoodSubCategory(qSpace)) {
+          filteredRecentExpenses = foodExpenses.slice(0, 8);
+        } else {
+          filteredRecentExpenses = expenses.filter((e) => (e.category || 'Other').toLowerCase() === qSpace.toLowerCase()).slice(0, 8);
+        }
       }
     }
 
@@ -206,7 +298,7 @@ exports.getDashboardData = async (req, res, next) => {
         categoryBudgets,
         categoryBreakdown,
         recentExpenses: filteredRecentExpenses,
-        spaces,
+        spaces: allTopSpaces,
         activeSpace: qSpace || null,
         activeSpaceData,
       },

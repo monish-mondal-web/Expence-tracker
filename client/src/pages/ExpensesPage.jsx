@@ -153,12 +153,26 @@ export const ExpensesPage = () => {
               cursor: 'pointer',
             }}
           >
-            <option value="All">All Categories</option>
-            {categories.map((c) => (
-              <option key={c._id || c.name} value={c.name}>
-                {c.name}
-              </option>
-            ))}
+            <option value="All">All Spaces & Categories</option>
+            <optgroup label="Spaces">
+              <option value="Food & Dining">Food & Dining (All Food)</option>
+              <option value="Room Rent">Room Rent</option>
+              <option value="Gym">Gym</option>
+              <option value="Travel">Travel</option>
+              {categories.filter((c) => !['food & dining', 'room rent', 'gym', 'travel', 'groceries', 'snacks', 'breakfast', 'lunch', 'dinner', 'drinks'].includes(c.name.toLowerCase())).map((c) => (
+                <option key={c._id || c.name} value={c.name}>{c.name}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Food & Dining Sub-parts">
+              <option value="Groceries">Groceries</option>
+              <option value="Breakfast">Breakfast</option>
+              <option value="Lunch">Lunch</option>
+              <option value="Dinner">Dinner</option>
+              <option value="Snacks">Snacks</option>
+              <option value="Meat / Fish">Meat / Fish</option>
+              <option value="Drinks & Beverages">Drinks & Beverages</option>
+              <option value="Fruits & Veg">Fruits & Veg</option>
+            </optgroup>
           </select>
         </div>
 

@@ -16,8 +16,15 @@ export const SpaceSwitcher = () => {
   // Spaces list from dashboardData or categories
   const serverSpaces = dashboardData?.spaces || [];
 
-  // Core recommended spaces order if available
-  const PRESET_SPACES = ['Food & Dining', 'Travel', 'Room Rent', 'Gym'];
+  // Core recommended spaces in priority order
+  const PRESET_SPACES = ['Food & Dining', 'Room Rent', 'Gym', 'Travel'];
+
+  // Food subcategories that belong UNDER Food & Dining and MUST NOT appear as top-level spaces
+  const FOOD_SUB_NAMES = new Set([
+    'groceries', 'meat / fish', 'meat', 'fish', 'snacks', 'breakfast',
+    'lunch', 'dinner', 'drinks', 'fruits & vegetables', 'fruits', 'vegetables',
+    'coffee', 'tea', 'beverages'
+  ]);
 
   // Merge spaces list
   const displaySpaces = [];
@@ -40,9 +47,9 @@ export const SpaceSwitcher = () => {
       // Provide default fallback
       let icon = 'Utensils';
       let color = '#10B981';
-      if (name === 'Travel') { icon = 'Car'; color = '#3B82F6'; }
       if (name === 'Room Rent') { icon = 'Home'; color = '#6366F1'; }
       if (name === 'Gym') { icon = 'Dumbbell'; color = '#F59E0B'; }
+      if (name === 'Travel') { icon = 'Car'; color = '#3B82F6'; }
       displaySpaces.push({
         name,
         icon,
@@ -54,9 +61,10 @@ export const SpaceSwitcher = () => {
     }
   });
 
-  // 2. Add remaining server spaces / custom spaces
+  // 2. Add remaining server spaces / custom spaces (excluding food sub-categories)
   serverSpaces.forEach((s) => {
-    if (!addedNames.has(s.name.toLowerCase())) {
+    const lower = s.name.toLowerCase().trim();
+    if (!addedNames.has(lower) && !FOOD_SUB_NAMES.has(lower)) {
       displaySpaces.push({
         name: s.name,
         icon: s.icon || 'Utensils',
@@ -64,7 +72,7 @@ export const SpaceSwitcher = () => {
         monthlyBudget: s.monthlyBudget || 0,
         hasBudget: !!s.hasBudget,
       });
-      addedNames.add(s.name.toLowerCase());
+      addedNames.add(lower);
     }
   });
 
