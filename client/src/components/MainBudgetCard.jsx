@@ -137,7 +137,7 @@ export const MainBudgetCard = ({
             Set Monthly Budget
           </h3>
           <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-            Set or split your monthly budget across categories (Food, Travel, Shopping, Bills) to activate live pace tracking.
+            Set your monthly budget for categories (Food, Travel, Tour, Room Rent, Health, Gym) to activate live pace tracking.
           </p>
           <button
             type="button"
@@ -146,7 +146,7 @@ export const MainBudgetCard = ({
             style={{ margin: '0 auto', display: 'inline-flex', padding: '0.6rem 1.4rem' }}
           >
             <Pencil size={13} />
-            <span>Set / Split Budget</span>
+            <span>Set Monthly Budget</span>
           </button>
         </div>
       </div>
@@ -186,7 +186,7 @@ export const MainBudgetCard = ({
             type="button"
             className="budget-edit-pill"
             onClick={onSetBudget}
-            title="Edit / Split monthly budget"
+            title="Edit monthly budget"
           >
             <Pencil size={12} strokeWidth={2.2} />
             <span>Edit</span>

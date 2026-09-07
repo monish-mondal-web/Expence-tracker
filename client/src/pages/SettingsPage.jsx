@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { CategoryIcon, AVAILABLE_ICONS } from '../components/CategoryIcon';
 import { CARTOON_AVATAR_PRESETS } from '../components/AuthScreen';
+import { Skeleton } from '../components/Skeleton';
 import { ArrowUpRight, DollarSign, Tag, Plus, Trash2, User, Loader2 } from 'lucide-react';
 
 export const SettingsPage = () => {
@@ -19,6 +20,14 @@ export const SettingsPage = () => {
   const [profileName, setProfileName] = useState(user?.name || '');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || CARTOON_AVATAR_PRESETS[0]);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 280);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (user?.name) setProfileName(user.name);
@@ -98,6 +107,49 @@ export const SettingsPage = () => {
       },
     });
   };
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Profile Card Skeleton */}
+        <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.2rem' }}>
+            <Skeleton width="64px" height="64px" borderRadius="50%" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+              <Skeleton width="140px" height="20px" borderRadius="6px" />
+              <Skeleton width="180px" height="14px" borderRadius="6px" />
+            </div>
+          </div>
+          <Skeleton height="42px" borderRadius="var(--radius-md)" style={{ marginBottom: '1rem' }} />
+          <Skeleton width="120px" height="38px" borderRadius="var(--radius-md)" />
+        </div>
+
+        {/* Monthly Budget Card Skeleton */}
+        <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <Skeleton width="160px" height="22px" borderRadius="6px" style={{ marginBottom: '0.6rem' }} />
+          <Skeleton height="36px" borderRadius="6px" style={{ marginBottom: '1rem' }} />
+          <Skeleton width="180px" height="42px" borderRadius="var(--radius-md)" />
+        </div>
+
+        {/* Currency Card Skeleton */}
+        <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <Skeleton width="190px" height="20px" borderRadius="6px" style={{ marginBottom: '0.6rem' }} />
+          <Skeleton height="46px" borderRadius="var(--radius-md)" />
+        </div>
+
+        {/* Categories Card Skeleton */}
+        <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
+          <Skeleton width="160px" height="22px" borderRadius="6px" style={{ marginBottom: '1rem' }} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.2rem' }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <Skeleton key={i} width="110px" height="36px" borderRadius="20px" />
+            ))}
+          </div>
+          <Skeleton height="44px" borderRadius="var(--radius-md)" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -210,12 +262,12 @@ export const SettingsPage = () => {
         <div className="section-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <ArrowUpRight size={20} color="#0F172A" />
-            <h2>Monthly Food Budget</h2>
+            <h2>Monthly Budget</h2>
           </div>
         </div>
 
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '1.25rem' }}>
-          Update your monthly food budget for the current month or configure budgets for any month. Safe daily limits and dynamic recommendations recalculate instantly.
+          Set your monthly budget for categories (Food, Travel, Tour, Room Rent, Health, Gym & more). Safe daily limits and dynamic recommendations recalculate instantly.
         </p>
 
         <button
@@ -257,11 +309,11 @@ export const SettingsPage = () => {
         <div className="section-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <Tag size={20} color="#0F172A" />
-            <h2>Food Categories</h2>
+            <h2>Expense Categories</h2>
           </div>
         </div>
 
-        {/* 1. ADD CUSTOM FOOD CATEGORY AT THE TOP */}
+        {/* 1. ADD CUSTOM EXPENSE CATEGORY AT THE TOP */}
         <div
           style={{
             background: '#FFFFFF',
@@ -281,7 +333,7 @@ export const SettingsPage = () => {
                   <Plus size={16} color="#059669" strokeWidth={2.5} />
                 </div>
                 <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                  Add Custom Food Category
+                  Add Custom Expense Category
                 </h3>
               </div>
               <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '3px 0 0' }}>
