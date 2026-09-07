@@ -4187,5 +4187,231 @@ button, input, select, textarea {
   transform: scale(0.96);
 }
 
+/* ==========================================================================
+   Water Loading & Bubble Progress Component
+   ========================================================================== */
+.water-loader-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 50% 30%, #F0FDF4 0%, #F8FAFC 70%, #EFF6FF 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  overflow: hidden;
+}
 
+.water-loader-inline {
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+}
 
+.water-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  position: relative;
+  max-width: 320px;
+  width: 90%;
+  text-align: center;
+}
+
+/* App Branding Header */
+.water-loader-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.water-loader-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: #DCFCE7;
+  border: 1px solid #86EFAC;
+  border-radius: 9999px;
+  color: #166534;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.water-loader-app-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #064E3B;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+  margin: 2px 0 0;
+}
+
+.water-loader-app-title span.accent {
+  color: #059669;
+}
+
+/* Water Vessel / Globe */
+.water-vessel-container {
+  width: 136px;
+  height: 136px;
+  border-radius: 50%;
+  border: 3.5px solid #059669;
+  background: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+/* Water Liquid Body with Dynamic Height */
+.water-liquid-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(180deg, #10B981 0%, #059669 100%);
+  transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* Undulating Water Waves on top of the liquid */
+.water-wave-front,
+.water-wave-back {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 200%;
+  height: 16px;
+  background-repeat: repeat-x;
+  pointer-events: none;
+}
+
+.water-wave-front {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0 C150,90 350,-40 500,45 C650,130 900,-30 1200,30 L1200,120 L0,120 Z' fill='%2310B981'/%3E%3C/svg%3E");
+  background-size: 136px 16px;
+  animation: waveScrollFront 2.2s linear infinite;
+  opacity: 0.95;
+}
+
+.water-wave-back {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0 C150,70 400,-20 600,40 C800,100 1050,-10 1200,20 L1200,120 L0,120 Z' fill='%2334D399'/%3E%3C/svg%3E");
+  background-size: 136px 16px;
+  animation: waveScrollBack 3.4s linear infinite reverse;
+  opacity: 0.65;
+}
+
+@keyframes waveScrollFront {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes waveScrollBack {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Floating Rising Water Bubbles inside the vessel */
+.water-bubble {
+  position: absolute;
+  bottom: -10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  animation: bubbleAscend 2.5s infinite ease-in;
+}
+
+.water-bubble.b1 { left: 20%; width: 9px; height: 9px; animation-delay: 0.2s; animation-duration: 2.2s; }
+.water-bubble.b2 { left: 45%; width: 14px; height: 14px; animation-delay: 0.8s; animation-duration: 2.8s; }
+.water-bubble.b3 { left: 68%; width: 8px; height: 8px; animation-delay: 1.4s; animation-duration: 2.1s; }
+.water-bubble.b4 { left: 35%; width: 11px; height: 11px; animation-delay: 0.5s; animation-duration: 2.6s; }
+.water-bubble.b5 { left: 80%; width: 10px; height: 10px; animation-delay: 1.9s; animation-duration: 2.4s; }
+
+@keyframes bubbleAscend {
+  0% {
+    transform: translateY(0) translateX(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  80% {
+    transform: translateY(-90px) translateX(6px) scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-120px) translateX(-4px) scale(1.15);
+    opacity: 0;
+  }
+}
+
+/* Vessel Center Counter */
+.water-vessel-counter {
+  position: relative;
+  z-index: 10;
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #064E3B;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  backdrop-filter: blur(4px);
+}
+
+/* Horizontal Liquid Progress Bar below vessel */
+.water-progressbar-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.water-progressbar-track {
+  width: 100%;
+  height: 8px;
+  background: #E2E8F0;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.water-progressbar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10B981, #059669, #34D399);
+  background-size: 200% 100%;
+  animation: liquidBarFlow 2s linear infinite;
+  border-radius: 9999px;
+  transition: width 0.25s ease-out;
+  position: relative;
+}
+
+@keyframes liquidBarFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.water-loader-status-msg {
+  font-size: 0.82rem;
+  color: #64748B;
+  font-weight: 600;
+  margin: 0;
+}
