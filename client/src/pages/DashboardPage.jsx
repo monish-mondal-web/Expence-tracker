@@ -19,6 +19,7 @@ export const DashboardPage = () => {
     deleteExpenseOptimistic,
     requestConfirm,
     setActiveTab,
+    activeSpace,
   } = useApp();
 
   const { user } = useAuth();
@@ -103,16 +104,28 @@ export const DashboardPage = () => {
     }
   }, [isDashboardLoading, dashboardData, user, openSetBudget]);
 
-  const dailySafeSpend =
-    dashboardData?.dynamicSafeDailyBudget || dashboardData?.safeDailyBudget || 0;
-  const todaySpent = dashboardData?.todaySpent || 0;
-  const remainingBudget = dashboardData?.remainingBudget || 0;
-  const budget = dashboardData?.monthlyBudget || 0;
+  // Space-aware daily safe spend and remaining calculations
+  const isSpaceMode = activeSpace && activeSpace !== 'All';
+  const spaceObj = isSpaceMode
+    ? (dashboardData?.spaces?.find((s) => s.name?.toLowerCase() === activeSpace?.toLowerCase()) || dashboardData?.activeSpaceData)
+    : null;
 
-  const safeRemainingToday =
-    dashboardData?.safeRemainingToday !== undefined
-      ? dashboardData.safeRemainingToday
-      : Math.round((dailySafeSpend - todaySpent) * 100) / 100;
+  const budget = isSpaceMode ? (spaceObj?.monthlyBudget || 0) : (dashboardData?.monthlyBudget || 0);
+  const remainingBudget = isSpaceMode ? (spaceObj?.remainingBudget || 0) : (dashboardData?.remainingBudget || 0);
+  const dynamicSafeDailyBudget = isSpaceMode
+    ? (spaceObj?.dynamicSafeDailyBudget || spaceObj?.safeDailyBudget || 0)
+    : (dashboardData?.dynamicSafeDailyBudget || 0);
+  const safeDailyBudget = isSpaceMode
+    ? (spaceObj?.safeDailyBudget || 0)
+    : (dashboardData?.safeDailyBudget || 0);
+  const dailySafeSpend = dynamicSafeDailyBudget || safeDailyBudget || 0;
+  const todaySpent = isSpaceMode ? (spaceObj?.todaySpent || 0) : (dashboardData?.todaySpent || 0);
+
+  const safeRemainingToday = isSpaceMode
+    ? Math.round((dailySafeSpend - todaySpent) * 100) / 100
+    : (dashboardData?.safeRemainingToday !== undefined
+        ? dashboardData.safeRemainingToday
+        : Math.round((dailySafeSpend - todaySpent) * 100) / 100);
 
   const isLimitExpired =
     (dailySafeSpend > 0 && todaySpent >= dailySafeSpend) ||
