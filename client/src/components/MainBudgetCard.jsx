@@ -37,6 +37,7 @@ export const MainBudgetCard = ({
   const safeDailyBudget = data?.safeDailyBudget || 0;
   const effectiveSafeDaily = dynamicSafeDailyBudget || safeDailyBudget || 0;
   const todaySpent = data?.todaySpent || 0;
+  const smartMessage = data?.smartMessage || '';
 
   // Remaining in today's daily limit (negative if over limit)
   const safeRemainingToday =
