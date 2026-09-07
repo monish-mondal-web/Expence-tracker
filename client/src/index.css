@@ -1664,41 +1664,73 @@ button, input, select, textarea {
   scrollbar-color: #CBD5E1 transparent;
 }
 
-.modal-content::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+/* Universal Ultra-Slim Modern Scrollbar across ALL elements, modals & containers */
+*, *::before, *::after {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
 }
 
-.modal-content::-webkit-scrollbar-track {
-  background: transparent;
+*::-webkit-scrollbar {
+  width: 3px !important;
+  height: 3px !important;
 }
 
-.modal-content::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 10px;
+*::-webkit-scrollbar-track {
+  background: transparent !important;
 }
 
-.modal-content::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4) !important;
+  border-radius: 999px !important;
+  transition: background-color 0.2s ease;
 }
 
-/* Global Thin Sleek Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7) !important;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 10px;
+*::-webkit-scrollbar-corner {
+  background: transparent !important;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+/* Specific modal inner scroll container styling */
+.modal-content,
+.modal-content > div,
+.custom-slim-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent !important;
+}
+
+.modal-content::-webkit-scrollbar,
+.modal-content > div::-webkit-scrollbar,
+.custom-slim-scrollbar::-webkit-scrollbar {
+  width: 3px !important;
+  height: 3px !important;
+}
+
+.modal-content::-webkit-scrollbar-track,
+.modal-content > div::-webkit-scrollbar-track,
+.custom-slim-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.modal-content::-webkit-scrollbar-thumb,
+.modal-content > div::-webkit-scrollbar-thumb,
+.custom-slim-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45) !important;
+  border-radius: 999px !important;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover,
+.modal-content > div::-webkit-scrollbar-thumb:hover,
+.custom-slim-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7) !important;
 }
 
 .modal-header {

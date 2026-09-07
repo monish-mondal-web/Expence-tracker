@@ -231,7 +231,15 @@ export const SetBudgetModal = () => {
         </div>
 
         {/* Scrollable Form Body */}
-        <div style={{ overflowY: 'auto', paddingRight: '0.2rem', flex: 1 }}>
+        <div
+          className="custom-slim-scrollbar"
+          style={{
+            overflowY: 'auto',
+            paddingRight: '0.35rem',
+            flex: 1,
+            scrollbarWidth: 'thin',
+          }}
+        >
           <form onSubmit={handleSubmit} id="budget-modal-form">
             {/* Target Month & Year Selector */}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
