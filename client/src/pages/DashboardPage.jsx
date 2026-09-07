@@ -24,9 +24,10 @@ export const DashboardPage = () => {
   const hasPromptedBudgetRef = useRef(false);
 
   // Budget prompt rules:
-  // 1. If 0 spaces/budgets added: prompt on every page refresh/reload until a budget is set
-  // 2. If ONLY Food & Dining is budgeted: prompt daily 1-time on open/refresh; if dismissed, don't prompt again today
-  // 3. If 2 or more spaces are budgeted: never prompt
+  // 1. If 0 spaces set: prompt on open/refresh every time
+  // 2. If 1 space set: prompt daily one time
+  // 3. If 2 spaces set: prompt every 2 days (48 hours interval)
+  // 4. If 3 or more spaces set: do not prompt
   useEffect(() => {
     if (isDashboardLoading || !dashboardData || hasPromptedBudgetRef.current) return;
 
@@ -36,13 +37,20 @@ export const DashboardPage = () => {
     const budgetedSpaces = serverSpaces.filter((s) => (Number(s.monthlyBudget) || 0) > 0);
     const validCategoryBudgets = categoryBudgets.filter((cb) => (Number(cb.amount) || 0) > 0);
 
+    const distinctBudgetedNames = new Set([
+      ...budgetedSpaces.map((s) => s.name.toLowerCase()),
+      ...validCategoryBudgets.map((cb) => cb.category.toLowerCase()),
+    ]);
+
     const hasAnyBudget =
       (Number(dashboardData?.monthlyBudget) || 0) > 0 ||
       budgetedSpaces.length > 0 ||
       validCategoryBudgets.length > 0;
 
-    // Rule 1: No space/budget added at all
-    if (!hasAnyBudget) {
+    const spaceCount = hasAnyBudget ? Math.max(1, distinctBudgetedNames.size) : 0;
+
+    // Rule 1: 0 spaces set
+    if (spaceCount === 0) {
       hasPromptedBudgetRef.current = true;
       const timer = setTimeout(() => {
         openSetBudget();
@@ -50,35 +58,42 @@ export const DashboardPage = () => {
       return () => clearTimeout(timer);
     }
 
-    // Count distinct spaces/categories with budget
-    const distinctBudgetedNames = new Set([
-      ...budgetedSpaces.map((s) => s.name.toLowerCase()),
-      ...validCategoryBudgets.map((cb) => cb.category.toLowerCase()),
-    ]);
-
-    // Rule 3: If 2 or more spaces are budgeted, do not prompt
-    if (distinctBudgetedNames.size >= 2) {
-      hasPromptedBudgetRef.current = true;
-      return;
-    }
-
-    // Rule 2: Only Food & Dining is budgeted
-    const onlyHasFood =
-      distinctBudgetedNames.size === 1 &&
-      Array.from(distinctBudgetedNames)[0].includes('food');
-
-    if (onlyHasFood) {
+    // Rule 2: 1 space set -> Daily 1 time
+    if (spaceCount === 1) {
       hasPromptedBudgetRef.current = true;
       const todayStr = new Date().toISOString().slice(0, 10);
-      const lastPrompt = localStorage.getItem('pk_budget_prompt_food_only_date');
+      const lastPrompt = localStorage.getItem('pk_budget_prompt_1space_date');
 
       if (lastPrompt !== todayStr) {
-        localStorage.setItem('pk_budget_prompt_food_only_date', todayStr);
+        localStorage.setItem('pk_budget_prompt_1space_date', todayStr);
         const timer = setTimeout(() => {
           openSetBudget();
         }, 400);
         return () => clearTimeout(timer);
       }
+      return;
+    }
+
+    // Rule 3: 2 spaces set -> Every 2 days (48h interval)
+    if (spaceCount === 2) {
+      hasPromptedBudgetRef.current = true;
+      const lastPromptTime = Number(localStorage.getItem('pk_budget_prompt_2spaces_time')) || 0;
+      const nowTime = Date.now();
+      const twoDaysMs = 2 * 24 * 60 * 60 * 1000; // 48 hours
+
+      if (nowTime - lastPromptTime >= twoDaysMs) {
+        localStorage.setItem('pk_budget_prompt_2spaces_time', String(nowTime));
+        const timer = setTimeout(() => {
+          openSetBudget();
+        }, 400);
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
+
+    // Rule 4: 3 or more spaces set -> Never prompt
+    if (spaceCount >= 3) {
+      hasPromptedBudgetRef.current = true;
     }
   }, [isDashboardLoading, dashboardData, openSetBudget]);
 

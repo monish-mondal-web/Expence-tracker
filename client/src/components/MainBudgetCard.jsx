@@ -143,26 +143,28 @@ export const MainBudgetCard = ({
   const isOverLimit = isDailyLimitExpired;
   const isApproaching = isDailyLimitApproaching;
 
-  // Dynamic progress bar color: Green -> Yellow -> Red
+  // Dynamic progress bar color strictly based on Total Budget and Remaining Budget
   let progressColor = '#34D399'; // Default Green (safe / on track)
   let progressStatusClass = 'safe';
 
-  if (budget > 0 && (totalSpent >= budget || remainingBudget <= 0)) {
-    // 100% or over budget -> Red
-    progressColor = '#FB7185';
-    progressStatusClass = 'over';
-  } else if ((budget > 0 && spentPercent >= 90) || isDailyLimitExpired) {
-    // 90%+ or daily limit expired -> Red
-    progressColor = '#FB7185';
-    progressStatusClass = 'over';
-  } else if ((budget > 0 && spentPercent >= 75) || isDailyLimitApproaching) {
-    // 75% - 89% or approaching limit -> Yellow/Amber
-    progressColor = '#FBBF24';
-    progressStatusClass = 'warning';
-  } else {
-    // Under 75% -> Green
-    progressColor = '#34D399';
-    progressStatusClass = 'safe';
+  if (budget > 0) {
+    if (remainingBudget <= 0 || totalSpent >= budget) {
+      // 100% or over budget -> Red
+      progressColor = '#FB7185';
+      progressStatusClass = 'over';
+    } else if (spentPercent >= 90) {
+      // 90% - 99% of total budget spent -> Red (critical)
+      progressColor = '#FB7185';
+      progressStatusClass = 'over';
+    } else if (spentPercent >= 75) {
+      // 75% - 89% of total budget spent -> Yellow / Amber (warning)
+      progressColor = '#FBBF24';
+      progressStatusClass = 'warning';
+    } else {
+      // Under 75% of total budget spent -> Green (safe / healthy)
+      progressColor = '#34D399';
+      progressStatusClass = 'safe';
+    }
   }
 
   const handleResetBudget = () => {
