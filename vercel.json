@@ -19,8 +19,15 @@
       "dest": "server/server.js"
     },
     {
-      "src": "/(.*)",
+      "src": "/(assets/.*|favicon.*|icons.*|robots.txt|manifest.json|.*\\.[a-zA-Z0-9]+)",
       "dest": "client/$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "client/index.html"
     }
   ]
 }
