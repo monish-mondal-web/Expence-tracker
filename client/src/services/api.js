@@ -58,6 +58,11 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  uploadAvatar: (data) =>
+    request('/auth/upload-avatar', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   // Dashboard
   getDashboard: (month, year, today) => {

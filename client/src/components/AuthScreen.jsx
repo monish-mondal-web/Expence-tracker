@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
+import { uploadImageToImgBB } from '../utils/imgbb';
 import {
   Mail,
   Lock,
@@ -47,49 +48,34 @@ export const AuthScreen = () => {
 
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const fileInputRef = useRef(null);
 
-  // Handle local file image upload
-  const handleImageChange = (e) => {
+  // Handle local file image upload (with ImgBB support)
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 3 * 1024 * 1024) {
-      setError('Image file is too large. Please select an image under 3MB.');
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image file is too large. Please select an image under 5MB.', 'error');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        // Compress and scale down to 200x200 canvas
-        const canvas = document.createElement('canvas');
-        const size = 200;
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-
-        // Center-crop to square
-        const minDim = Math.min(img.width, img.height);
-        const startX = (img.width - minDim) / 2;
-        const startY = (img.height - minDim) / 2;
-        ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        setAvatarPreview(dataUrl);
-        setError('');
-      };
-      img.src = event.target.result;
-    };
-    reader.readAsDataURL(file);
+    try {
+      setIsLoading(true);
+      const res = await uploadImageToImgBB(file);
+      if (res?.url) {
+        setAvatarPreview(res.url);
+      }
+    } catch (err) {
+      showToast('Failed to process photo.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
 
     try {
@@ -97,7 +83,7 @@ export const AuthScreen = () => {
       showToast('Welcome back! Signed in successfully.');
       triggerRefresh();
     } catch (err) {
-      setError(err.message || 'Invalid email or password.');
+      showToast(err.message || 'Invalid email or password.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -105,20 +91,19 @@ export const AuthScreen = () => {
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
     if (!name.trim()) {
-      setError('Please enter your full name');
+      showToast('Please enter your full name', 'error');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      showToast('Password must be at least 6 characters long', 'error');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      showToast('Passwords do not match', 'error');
       return;
     }
 
@@ -128,7 +113,7 @@ export const AuthScreen = () => {
       showToast('Account created! Welcome to FinFood.');
       triggerRefresh();
     } catch (err) {
-      setError(err.message || 'Registration failed.');
+      showToast(err.message || 'Registration failed.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +121,6 @@ export const AuthScreen = () => {
 
   const handleForgotRequest = async (e) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
 
     try {
@@ -155,7 +139,7 @@ export const AuthScreen = () => {
         setForgotStep(2);
       }
     } catch (err) {
-      setError(err.message || 'Failed to request reset code.');
+      showToast(err.message || 'Failed to request reset code.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +147,6 @@ export const AuthScreen = () => {
 
   const handleResetSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
 
     try {
@@ -173,7 +156,7 @@ export const AuthScreen = () => {
       setPassword('');
       setForgotStep(1);
     } catch (err) {
-      setError(err.message || 'Failed to reset password.');
+      showToast(err.message || 'Failed to reset password.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -184,59 +167,16 @@ export const AuthScreen = () => {
     <div className="auth-fullscreen-container">
       <div className="auth-card">
         {/* Header Title & Subtitle */}
-        <div className="auth-header">
+        <div className="auth-header" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
           <h1 className="auth-title">
-            {mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Sign up' : 'Reset password'}
+            {mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create Account' : 'Reset password'}
           </h1>
           <p className="auth-subtitle">
-            {mode === 'login' ? (
-              <>
-                New user?{' '}
-                <button
-                  type="button"
-                  className="auth-link-btn"
-                  onClick={() => {
-                    setMode('signup');
-                    setError('');
-                  }}
-                >
-                  Create an account
-                </button>
-              </>
-            ) : mode === 'signup' ? (
-              <>
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  className="auth-link-btn"
-                  onClick={() => {
-                    setMode('login');
-                    setError('');
-                  }}
-                >
-                  Sign in
-                </button>
-              </>
-            ) : (
-              <>
-                Remember your password?{' '}
-                <button
-                  type="button"
-                  className="auth-link-btn"
-                  onClick={() => {
-                    setMode('login');
-                    setError('');
-                  }}
-                >
-                  Back to sign in
-                </button>
-              </>
-            )}
+            {mode === 'login' && 'Access your food budget and expense tracker'}
+            {mode === 'signup' && 'Start tracking your daily food expenses easily'}
+            {mode === 'forgot' && 'Recover access to your FinFood account'}
           </p>
         </div>
-
-        {/* Error Alert */}
-        {error && <div className="auth-error-badge">{error}</div>}
 
         {/* ================= MODE: LOGIN ================= */}
         {mode === 'login' && (
@@ -298,6 +238,26 @@ export const AuthScreen = () => {
             <button type="submit" className="auth-submit-btn" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Login'}
             </button>
+
+            {/* New user link placed at bottom as requested */}
+            <div style={{ textAlign: 'center', marginTop: '1.35rem', fontSize: '0.88rem', color: '#64748B' }}>
+              <span>New user? </span>
+              <button
+                type="button"
+                onClick={() => setMode('signup')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontWeight: 700,
+                  color: '#10B981',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: '0.88rem',
+                }}
+              >
+                Create an account
+              </button>
+            </div>
           </form>
         )}
 
@@ -435,6 +395,25 @@ export const AuthScreen = () => {
             <button type="submit" className="auth-submit-btn" disabled={isLoading}>
               {isLoading ? 'Creating Account...' : 'Create Account'}
             </button>
+
+            <div style={{ textAlign: 'center', marginTop: '1.35rem', fontSize: '0.88rem', color: '#64748B' }}>
+              <span>Already have an account? </span>
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontWeight: 700,
+                  color: '#10B981',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: '0.88rem',
+                }}
+              >
+                Sign in
+              </button>
+            </div>
           </form>
         )}
 
@@ -513,6 +492,25 @@ export const AuthScreen = () => {
                 </button>
               </form>
             )}
+
+            <div style={{ textAlign: 'center', marginTop: '1.35rem', fontSize: '0.88rem', color: '#64748B' }}>
+              <span>Remember your password? </span>
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setForgotStep(1); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontWeight: 700,
+                  color: '#10B981',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: '0.88rem',
+                }}
+              >
+                Back to sign in
+              </button>
+            </div>
           </div>
         )}
 

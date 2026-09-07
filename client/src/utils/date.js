@@ -65,8 +65,23 @@ export function formatFullDate(dateStr) {
 }
 
 /**
+ * Formats time string e.g. "12:30 PM".
+ */
+export function formatTime(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+/**
  * Returns month names list.
  */
 export function getMonthNames() {
   return MONTH_NAMES;
 }
+

@@ -139,9 +139,9 @@ exports.forgotPassword = async (req, res, next) => {
       success: true,
       message: emailResult.sent
         ? 'A 6-digit verification code has been sent to your email address!'
-        : 'Verification code generated. (Check your email or use the code below).',
+        : 'Verification code generated.',
       emailSent: emailResult.sent,
-      resetCode, // Provided for easy development & testing before SMTP setup
+      resetCode: emailResult.sent ? undefined : resetCode,
     });
   } catch (error) {
     next(error);
@@ -189,6 +189,51 @@ exports.resetPassword = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Password reset successfully! You can now log in.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/auth/upload-avatar
+exports.uploadAvatar = async (req, res, next) => {
+  try {
+    const { image } = req.body;
+    if (!image) {
+      return res.status(400).json({ success: false, error: 'Please select an image file' });
+    }
+
+    const apiKey = process.env.IMGBB_API_KEY || '17a29cfdaadee395de8713b7c83ab95d';
+    const cleanBase64 = image.replace(/^data:image\/\w+;base64,/, '');
+
+    const params = new URLSearchParams();
+    params.append('image', cleanBase64);
+
+    try {
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: 'POST',
+        body: params,
+      });
+
+      const data = await response.json();
+      if (data.success && data.data && data.data.url) {
+        return res.json({
+          success: true,
+          url: data.data.url,
+          displayUrl: data.data.display_url || data.data.url,
+          message: 'Image uploaded to ImgBB successfully',
+        });
+      }
+    } catch (fetchErr) {
+      console.warn('[ImgBB Upload] Direct ImgBB API error, using fallback:', fetchErr.message);
+    }
+
+    // Fallback if ImgBB upload fails: return compressed image data URL
+    res.json({
+      success: true,
+      url: image,
+      isFallback: true,
+      message: 'Profile photo set',
     });
   } catch (error) {
     next(error);

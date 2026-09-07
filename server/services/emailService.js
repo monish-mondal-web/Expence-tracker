@@ -4,7 +4,10 @@ const createTransporter = () => {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  let pass = process.env.SMTP_PASS || '';
+  if (pass) {
+    pass = pass.replace(/^["']|["']$/g, '');
+  }
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
   if (!host || !user || !pass || user.includes('your_email@gmail.com')) {
@@ -33,7 +36,9 @@ const sendResetCodeEmail = async (toEmail, code, userName = 'User') => {
     };
   }
 
-  const fromAddress = process.env.EMAIL_FROM || `FinFood Tracker <${process.env.SMTP_USER}>`;
+  let fromName = (process.env.SMTP_FROM_NAME || 'Team MDA').replace(/^["']|["']$/g, '');
+  let fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER;
+  const fromAddress = process.env.EMAIL_FROM || `"${fromName}" <${fromEmail}>`;
 
   const html = `
     <!DOCTYPE html>
@@ -61,7 +66,7 @@ const sendResetCodeEmail = async (toEmail, code, userName = 'User') => {
           <div class="code">${code}</div>
         </div>
         <p style="font-size: 13px; color: #64748B;">This code is valid for <strong>15 minutes</strong>. If you did not request this, you can safely ignore this email.</p>
-        <div class="footer">FinFood Expense & Budget Tracker</div>
+        <div class="footer">Team MDA — FinFood Expense & Budget Tracker</div>
       </div>
     </body>
     </html>

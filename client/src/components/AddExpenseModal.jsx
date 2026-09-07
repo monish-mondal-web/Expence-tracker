@@ -23,7 +23,6 @@ export const AddExpenseModal = () => {
   const [category, setCategory] = useState('');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
 
   // Synchronize state when modal opens or editingExpense changes
   useEffect(() => {
@@ -39,7 +38,6 @@ export const AddExpenseModal = () => {
         setCategory(categories[0]?.name || 'Lunch');
         setNote('');
       }
-      setError('');
     }
   }, [isAddExpenseOpen, editingExpense, preselectedDate, todayDate, categories]);
 
@@ -47,21 +45,20 @@ export const AddExpenseModal = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
 
     const numAmount = Number(amount);
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid expense amount greater than 0');
+      showToast('Please enter a valid expense amount greater than 0', 'error');
       return;
     }
 
     if (!category) {
-      setError('Please select a food category');
+      showToast('Please select a food category', 'error');
       return;
     }
 
     if (!date) {
-      setError('Please choose a valid date');
+      showToast('Please choose a valid date', 'error');
       return;
     }
 
@@ -80,13 +77,14 @@ export const AddExpenseModal = () => {
         triggerRefresh();
         closeAddExpense();
       } catch (err) {
-        setError(err.message || 'Failed to update expense');
+        showToast(err.message || 'Failed to update expense', 'error');
       } finally {
         setIsSubmitting(false);
       }
     } else {
-      // INSTANT OPTIMISTIC ADDITION (0ms)
+      // Optimistic create
       addExpenseOptimistic(payload);
+      closeAddExpense();
     }
   };
 
@@ -99,12 +97,6 @@ export const AddExpenseModal = () => {
             <X size={18} />
           </button>
         </div>
-
-        {error && (
-          <div style={{ background: '#FFF1F2', border: '1px solid #FECDD3', color: '#9F1239', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', fontSize: '0.84rem', marginBottom: '1.25rem' }}>
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit}>
           {/* Amount Field */}

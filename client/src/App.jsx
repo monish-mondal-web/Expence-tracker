@@ -9,7 +9,6 @@ import { ExpensesPage } from './pages/ExpensesPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { DesktopBlocker } from './components/DesktopBlocker';
 
 const AppContent = () => {
   const { activeTab } = useApp();
@@ -50,7 +49,6 @@ export default function App() {
   return (
     <AuthProvider>
       <AppProvider>
-        <DesktopBlocker />
         <AppContent />
       </AppProvider>
     </AuthProvider>

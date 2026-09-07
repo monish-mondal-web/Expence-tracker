@@ -16,13 +16,10 @@ import {
   Menu,
   Plus,
   CalendarDays,
-  User,
-  UserCheck,
-  LogOut,
-  UtensilsCrossed,
-  LogIn,
+  Bell,
   ChevronLeft,
   ChevronRight,
+  Leaf,
 } from 'lucide-react';
 
 export const MainLayout = ({ children }) => {
@@ -34,17 +31,14 @@ export const MainLayout = ({ children }) => {
     prevMonth,
     nextMonth,
     openAddExpense,
-    openSetBudget,
-    triggerRefresh,
   } = useApp();
 
-  const { user, isAuthenticated, logout, openAuthModal } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
-
-  // Real user data - zero hardcoded dummy values
-  const displayName = user?.name || (isAuthenticated ? 'User' : 'Guest');
+  // Dynamic user data from logged in session
+  const displayName = user?.name || (user?.email ? user.email.split('@')[0] : (isAuthenticated ? 'User' : 'Guest'));
   const displayInitials = user?.name
     ? user.name
         .split(' ')
@@ -52,256 +46,169 @@ export const MainLayout = ({ children }) => {
         .join('')
         .slice(0, 2)
         .toUpperCase()
-    : 'G';
+    : user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : 'U';
 
-  const navItems = [
-    { id: 'dashboard', label: 'Home', icon: Home },
-    { id: 'calendar', label: 'Budget', icon: PieChart },
-    { id: 'expenses', label: 'Expenses', icon: Receipt },
-    { id: 'settings', label: 'Menu', icon: Menu },
-  ];
-
-  const handleLogout = () => {
-    logout();
-    triggerRefresh();
+  // Dynamic time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning,';
+    if (hour < 17) return 'Good afternoon,';
+    return 'Good evening,';
   };
 
   return (
-    <div className="app-container">
-      {/* Desktop Sidebar */}
-      <aside className="app-sidebar">
-        <div className="sidebar-brand">
-          <div className="sidebar-logo">
-            <UtensilsCrossed size={20} />
-          </div>
-          <div className="brand-info">
-            <h2>FinFood</h2>
-            <span>Budget & Safe Zone</span>
-          </div>
-        </div>
-
-        <nav className="nav-links">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => setActiveTab(item.id)}
-              >
-                <Icon size={19} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="sidebar-footer">
-          <button
-            type="button"
-            className="quick-add-btn"
-            onClick={() => openAddExpense()}
-          >
-            <Plus size={18} />
-            <span>Add Expense</span>
-          </button>
-
-          {/* User Profile Card */}
-          <div
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.2rem', cursor: 'pointer' }}
-            onClick={() => setIsProfileDrawerOpen(true)}
-            title="Open Account Menu"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0 }}>
-              <div
-                className="user-avatar"
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  fontSize: '0.85rem',
-                  overflow: 'hidden',
-                }}
-              >
-                {user?.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={displayName}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  displayInitials
-                )}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {displayName}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {user ? user.email : 'Account'}
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="action-icon-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsProfileDrawerOpen(true);
-              }}
-              title="Account Menu & Sign Out"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
-
-        </div>
-      </aside>
-
-      {/* Main Content Viewport */}
-      <div className="app-main">
-        {/* Header directly matching mobile reference */}
-        <header className="app-header">
-          {/* Left: Avatar + Name (Good Morning removed) */}
-          <div
-            className="header-greeting"
-            onClick={() => setIsProfileDrawerOpen(true)}
-            title="Open Account Menu"
-          >
+    <div className="fintech-app-wrapper">
+      <div className="fintech-phone-container">
+        {/* 1. Header matching reference image */}
+        <header className="fintech-header">
+          <div className="header-top-row">
+            {/* Left: User Avatar */}
             <div
-              className="user-avatar"
-              style={{
-                width: '40px',
-                height: '40px',
-                background: '#E2E8F0',
-                border: 'none',
-                fontWeight: 800,
-                fontSize: '0.95rem',
-                color: '#0F172A',
-                cursor: 'pointer',
-                flexShrink: 0,
-                overflow: 'hidden',
-              }}
+              className="header-avatar"
+              onClick={() => setIsProfileDrawerOpen(true)}
+              title="View Account & Profile"
             >
               {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={displayName}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                <img src={user.avatar} alt={displayName} className="avatar-img" />
               ) : (
-                displayInitials
+                <div className="avatar-placeholder">{displayInitials}</div>
               )}
             </div>
-            <div className="greeting-text" style={{ minWidth: 0 }}>
-              <h1 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>
-                {displayName}
+
+            {/* Center: Greeting, Name */}
+            <div className="header-user-info">
+              <span className="header-greeting-lbl">{getGreeting()}</span>
+              <h1 className="header-name-title">
+                <span>{displayName}</span>
+                <span className="wave-icon">👋</span>
               </h1>
+            </div>
+
+            {/* Right: Calendar & Notification buttons */}
+            <div className="header-action-buttons">
+              <button
+                type="button"
+                className={`header-icon-btn ${showMonthPicker ? 'active' : ''}`}
+                onClick={() => setShowMonthPicker((prev) => !prev)}
+                title={`Select Month (${formatMonthYear(currentMonth, currentYear)})`}
+                aria-label="Toggle month picker"
+              >
+                <CalendarDays size={18} />
+              </button>
+
+              <button
+                type="button"
+                className="header-icon-btn notification"
+                onClick={() => setIsProfileDrawerOpen(true)}
+                title="Account Settings"
+                aria-label="Account Settings"
+              >
+                <Bell size={18} />
+                <span className="notification-dot" />
+              </button>
             </div>
           </div>
 
-          {/* Right: Month Switcher & Account Profile Trigger */}
-          <div className="header-controls">
-            {/* 1. Month / Calendar Selector */}
-            <button
-              type="button"
-              className={`action-icon-btn ${showMonthPicker ? 'active-icon' : ''}`}
-              onClick={() => setShowMonthPicker((prev) => !prev)}
-              title={`Month: ${formatMonthYear(currentMonth, currentYear)} (Click to switch)`}
-            >
-              <CalendarDays size={18} />
-            </button>
-
-            {/* 2. User Account Drawer Trigger */}
-            <button
-              type="button"
-              className="action-icon-btn"
-              onClick={() => setIsProfileDrawerOpen(true)}
-              title="Account Menu & Sign Out"
-            >
-              <UserCheck size={18} color="#0F172A" />
-            </button>
+          {/* Sub-Header Positive Status Pill (Right-aligned / Under Header) */}
+          <div className="header-status-row">
+            <div className="positive-status-pill">
+              <div className="status-leaf-circle">
+                <Leaf size={12} color="#059669" />
+              </div>
+              <div className="status-pill-text">
+                <span className="status-main-lbl">Stay consistent</span>
+                <span className="status-sub-lbl">You're doing great!</span>
+              </div>
+            </div>
           </div>
-
         </header>
 
-        {/* Collapsible Sleek Month Selector Strip */}
+        {/* Month Selector Bar when clicked */}
         {showMonthPicker && (
-          <div className="mobile-month-bar">
-            <button type="button" className="month-nav-btn" onClick={prevMonth} title="Previous month">
+          <div className="month-picker-strip">
+            <button type="button" className="month-strip-btn" onClick={prevMonth} title="Previous Month">
               <ChevronLeft size={16} />
             </button>
-            <span className="month-bar-title">
+            <span className="month-strip-label">
               {formatMonthYear(currentMonth, currentYear)}
             </span>
-            <button type="button" className="month-nav-btn" onClick={nextMonth} title="Next month">
+            <button type="button" className="month-strip-btn" onClick={nextMonth} title="Next Month">
               <ChevronRight size={16} />
             </button>
           </div>
         )}
 
-        {/* Dynamic Page Content */}
-        <main className="page-content">{children}</main>
+        {/* 2. Main Page Content */}
+        <main className="fintech-main-scrollable">
+          {children}
+        </main>
+
+        {/* 3. Bottom Navigation matching reference image */}
+        <nav className="fintech-bottom-navbar">
+          {/* Slot 1: Home */}
+          <button
+            type="button"
+            className={`bottom-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <div className="nav-icon-box">
+              <Home size={20} strokeWidth={activeTab === 'dashboard' ? 2.4 : 1.8} />
+            </div>
+            <span className="nav-text">Home</span>
+          </button>
+
+          {/* Slot 2: Budget */}
+          <button
+            type="button"
+            className={`bottom-nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
+            onClick={() => setActiveTab('calendar')}
+          >
+            <div className="nav-icon-box">
+              <PieChart size={20} strokeWidth={activeTab === 'calendar' ? 2.4 : 1.8} />
+            </div>
+            <span className="nav-text">Budget</span>
+          </button>
+
+          {/* Slot 3: Center Elevated Floating Green Add Button */}
+          <button
+            type="button"
+            className="bottom-nav-floating-add"
+            onClick={() => openAddExpense()}
+            title="Add Food Expense"
+            aria-label="Add Food Expense"
+          >
+            <Plus size={26} strokeWidth={2.8} color="#FFFFFF" />
+          </button>
+
+          {/* Slot 4: Expenses */}
+          <button
+            type="button"
+            className={`bottom-nav-item ${activeTab === 'expenses' ? 'active' : ''}`}
+            onClick={() => setActiveTab('expenses')}
+          >
+            <div className="nav-icon-box">
+              <Receipt size={20} strokeWidth={activeTab === 'expenses' ? 2.4 : 1.8} />
+            </div>
+            <span className="nav-text">Expenses</span>
+          </button>
+
+          {/* Slot 5: More (Settings/Menu) */}
+          <button
+            type="button"
+            className={`bottom-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            <div className="nav-icon-box">
+              <Menu size={20} strokeWidth={activeTab === 'settings' ? 2.4 : 1.8} />
+            </div>
+            <span className="nav-text">More</span>
+          </button>
+        </nav>
       </div>
 
-      {/* Mobile Bottom Navigation with Center '+' Add Expense Button */}
-      <nav className="mobile-bottom-nav">
-        {/* Slot 1: Home */}
-        <button
-          type="button"
-          className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dashboard')}
-        >
-          <Home size={20} strokeWidth={activeTab === 'dashboard' ? 2.5 : 1.8} />
-          <span>Home</span>
-        </button>
-
-        {/* Slot 2: Budget */}
-        <button
-          type="button"
-          className={`mobile-nav-item ${activeTab === 'calendar' ? 'active' : ''}`}
-          onClick={() => setActiveTab('calendar')}
-        >
-          <PieChart size={20} strokeWidth={activeTab === 'calendar' ? 2.5 : 1.8} />
-          <span>Budget</span>
-        </button>
-
-        {/* Slot 3 (Center): Elevated '+' Quick Add Expense Button */}
-        <button
-          type="button"
-          className="mobile-center-add-btn"
-          onClick={() => openAddExpense()}
-          title="Add Expense"
-          aria-label="Add Expense"
-        >
-          <Plus size={22} strokeWidth={2.6} />
-        </button>
-
-        {/* Slot 4: Expenses */}
-        <button
-          type="button"
-          className={`mobile-nav-item ${activeTab === 'expenses' ? 'active' : ''}`}
-          onClick={() => setActiveTab('expenses')}
-        >
-          <Receipt size={20} strokeWidth={activeTab === 'expenses' ? 2.5 : 1.8} />
-          <span>Expenses</span>
-        </button>
-
-        {/* Slot 5: Menu / Settings */}
-        <button
-          type="button"
-          className={`mobile-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          <Menu size={20} strokeWidth={activeTab === 'settings' ? 2.5 : 1.8} />
-          <span>Menu</span>
-        </button>
-      </nav>
-
-
-      {/* Modals & Toast */}
+      {/* Global Modals & Notifications */}
       <AddExpenseModal />
       <SetBudgetModal />
       <ConfirmModal />
@@ -314,6 +221,5 @@ export const MainLayout = ({ children }) => {
         onClose={() => setIsProfileDrawerOpen(false)}
       />
     </div>
-
   );
 };

@@ -50,7 +50,7 @@ export const SetBudgetModal = () => {
 
     const num = Number(budgetAmount);
     if (!budgetAmount || isNaN(num) || num <= 0) {
-      setError('Please enter a valid monthly food budget greater than 0');
+      showToast('Please enter a valid monthly food budget greater than 0', 'error');
       return;
     }
 
@@ -78,12 +78,6 @@ export const SetBudgetModal = () => {
             <X size={18} />
           </button>
         </div>
-
-        {error && (
-          <div style={{ background: '#FFF1F2', border: '1px solid #FECDD3', color: '#9F1239', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', fontSize: '0.84rem', marginBottom: '1.25rem' }}>
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit}>
           {/* Target Period */}

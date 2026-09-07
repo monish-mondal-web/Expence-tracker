@@ -30,13 +30,11 @@ export const AuthModal = () => {
   const [receivedCodeBanner, setReceivedCodeBanner] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   if (!isAuthModalOpen) return null;
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
 
     try {
@@ -45,7 +43,7 @@ export const AuthModal = () => {
       triggerRefresh();
       closeAuthModal();
     } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      showToast(err.message || 'Login failed. Please check your credentials.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -53,10 +51,9 @@ export const AuthModal = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      showToast('Passwords do not match', 'error');
       return;
     }
 
@@ -67,27 +64,35 @@ export const AuthModal = () => {
       triggerRefresh();
       closeAuthModal();
     } catch (err) {
-      setError(err.message || 'Registration failed.');
+      showToast(err.message || 'Registration failed.', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const [emailSentStatus, setEmailSentStatus] = useState(false);
+
   const handleForgotRequest = async (e) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
 
     try {
       const res = await forgotPassword(email.trim());
       if (res.success) {
-        setReceivedCodeBanner(res.resetCode);
-        setResetCode(res.resetCode);
+        setEmailSentStatus(!!res.emailSent);
+        if (res.emailSent) {
+          setReceivedCodeBanner('');
+          setResetCode('');
+          showToast('Verification code sent to your email!');
+        } else {
+          setReceivedCodeBanner(res.resetCode);
+          setResetCode(res.resetCode || '');
+          showToast('Verification code generated!');
+        }
         setForgotStep(2);
-        showToast('Verification code generated!');
       }
     } catch (err) {
-      setError(err.message || 'Failed to request reset code.');
+      showToast(err.message || 'Failed to request reset code.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -95,7 +100,6 @@ export const AuthModal = () => {
 
   const handleResetSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setIsLoading(true);
 
     try {
@@ -108,7 +112,7 @@ export const AuthModal = () => {
         setReceivedCodeBanner('');
       }
     } catch (err) {
-      setError(err.message || 'Password reset failed.');
+      showToast(err.message || 'Password reset failed.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -184,12 +188,6 @@ export const AuthModal = () => {
             >
               Create Account
             </button>
-          </div>
-        )}
-
-        {error && (
-          <div style={{ background: '#FFF1F2', border: '1px solid #FECDD3', color: '#9F1239', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', marginBottom: '1.25rem' }}>
-            {error}
           </div>
         )}
 
@@ -359,14 +357,24 @@ export const AuthModal = () => {
               </form>
             ) : (
               <form onSubmit={handleResetSubmit}>
-                {receivedCodeBanner && (
-                  <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', padding: '0.75rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 600 }}>Your Verification Code:</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 800, letterSpacing: '0.15em', margin: '0.2rem 0' }}>
-                      {receivedCodeBanner}
+                {emailSentStatus ? (
+                  <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', padding: '0.85rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>Verification Email Sent!</div>
+                    <div style={{ fontSize: '0.78rem', marginTop: '0.2rem' }}>
+                      We emailed a 6-digit verification code to <strong>{email}</strong>. Please check your inbox.
                     </div>
-                    <div style={{ fontSize: '0.72rem' }}>Code expires in 15 minutes</div>
+                    <div style={{ fontSize: '0.72rem', color: '#047857', marginTop: '0.3rem' }}>Code valid for 15 minutes</div>
                   </div>
+                ) : (
+                  receivedCodeBanner && (
+                    <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', color: '#065F46', padding: '0.75rem', borderRadius: 'var(--radius-md)', marginBottom: '1.25rem', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 600 }}>Your Verification Code:</div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: 800, letterSpacing: '0.15em', margin: '0.2rem 0' }}>
+                        {receivedCodeBanner}
+                      </div>
+                      <div style={{ fontSize: '0.72rem' }}>Code expires in 15 minutes</div>
+                    </div>
+                  )
                 )}
 
                 <div className="form-group">
