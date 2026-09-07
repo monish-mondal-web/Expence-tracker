@@ -42,6 +42,12 @@ export const MainBudgetCard = ({
   const safeZoneKey = data?.safeZoneKey || 'safe';
   const smartMessage = data?.smartMessage || '';
 
+  // Remaining in today's daily limit (negative if over limit)
+  const safeRemainingToday =
+    data?.safeRemainingToday !== undefined
+      ? data.safeRemainingToday
+      : Math.round((effectiveSafeDaily - todaySpent) * 100) / 100;
+
   // Days elapsed in current month for pacing analytics
   const now = new Date();
   const currentMonth = data?.month || now.getMonth() + 1;
@@ -203,17 +209,25 @@ export const MainBudgetCard = ({
           }
         }}
       >
-        {/* Metric 1: Daily Limit */}
+        {/* Metric 1: Daily Limit & Today's Remaining / -Over */}
         <div className="budget-metric-col">
-          <div className={`metric-col-icon ${isOverLimit ? 'pink' : ''}`}>
-            <CalendarDays size={15} color={isOverLimit ? '#FB7185' : '#34D399'} />
+          <div className={`metric-col-icon ${safeRemainingToday < 0 ? 'pink' : ''}`}>
+            <CalendarDays size={15} color={safeRemainingToday < 0 ? '#FB7185' : '#34D399'} />
           </div>
           <div className="metric-col-content">
-            <div className="metric-col-val" style={{ color: isOverLimit ? '#FDA4AF' : '#FFFFFF' }}>
+            <div className="metric-col-val" style={{ color: safeRemainingToday < 0 ? '#FDA4AF' : '#FFFFFF' }}>
               {formatCurrency(effectiveSafeDaily)}/day
             </div>
-            <div className="metric-col-label" style={{ color: isOverLimit ? '#FB7185' : '#94A3B8' }}>
-              {isOverLimit ? 'Limit expired' : 'Daily limit'}
+            <div
+              className="metric-col-label"
+              style={{
+                color: safeRemainingToday < 0 ? '#FB7185' : '#34D399',
+                fontWeight: 600,
+              }}
+            >
+              {safeRemainingToday < 0
+                ? `-${formatCurrency(Math.abs(safeRemainingToday))} over`
+                : `${formatCurrency(safeRemainingToday)} left today`}
             </div>
           </div>
         </div>
@@ -281,19 +295,12 @@ export const MainBudgetCard = ({
               </div>
 
               <div className="breakdown-cell">
-                <span className="breakdown-label">Full Daily Budget</span>
-                <span className="breakdown-val">
-                  {formatCurrency(dynamicDailyBudget)}
-                </span>
-              </div>
-
-              <div className="breakdown-cell">
                 <span className="breakdown-label">Spent Today</span>
                 <span
                   className="breakdown-val"
                   style={{
                     color:
-                      todaySpent > effectiveSafeDaily && effectiveSafeDaily > 0
+                      safeRemainingToday < 0
                         ? '#FB7185'
                         : todaySpent > 0
                         ? '#FCD34D'
@@ -301,6 +308,22 @@ export const MainBudgetCard = ({
                   }}
                 >
                   {formatCurrency(todaySpent)}
+                </span>
+              </div>
+
+              <div className={`breakdown-cell ${safeRemainingToday < 0 ? 'expired' : ''}`}>
+                <span className="breakdown-label">
+                  {safeRemainingToday < 0 ? "Today's Over Limit" : "Today's Remaining"}
+                </span>
+                <span
+                  className="breakdown-val"
+                  style={{
+                    color: safeRemainingToday < 0 ? '#FB7185' : '#34D399',
+                  }}
+                >
+                  {safeRemainingToday < 0
+                    ? `-${formatCurrency(Math.abs(safeRemainingToday))}`
+                    : formatCurrency(safeRemainingToday)}
                 </span>
               </div>
 

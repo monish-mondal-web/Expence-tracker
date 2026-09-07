@@ -27,6 +27,11 @@ export const DashboardPage = () => {
   const remainingBudget = dashboardData?.remainingBudget || 0;
   const budget = dashboardData?.monthlyBudget || 0;
 
+  const safeRemainingToday =
+    dashboardData?.safeRemainingToday !== undefined
+      ? dashboardData.safeRemainingToday
+      : Math.round((dailySafeSpend - todaySpent) * 100) / 100;
+
   const isLimitExpired =
     (dailySafeSpend > 0 && todaySpent >= dailySafeSpend) ||
     (budget > 0 && remainingBudget <= 0 && todaySpent > 0);
@@ -56,6 +61,7 @@ export const DashboardPage = () => {
         onAddExpense={() => openAddExpense()}
         onSetBudget={openSetBudget}
         dailySafeSpend={dailySafeSpend}
+        safeRemainingToday={safeRemainingToday}
         isDailyLimitActive={isBreakdownOpen}
         isLimitExpired={isLimitExpired}
         onToggleDailyLimit={() => setIsBreakdownOpen((prev) => !prev)}

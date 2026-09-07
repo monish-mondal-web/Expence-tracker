@@ -8,9 +8,17 @@ export const QuickActions = ({
   onOpenCalendar,
   onToggleDailyLimit,
   dailySafeSpend = 0,
+  safeRemainingToday,
   isDailyLimitActive = false,
   isLimitExpired = false,
 }) => {
+  const isOver = isLimitExpired || (safeRemainingToday !== undefined && safeRemainingToday < 0);
+  const dailyLabel = isOver
+    ? (safeRemainingToday !== undefined
+        ? `-${formatCurrency(Math.abs(safeRemainingToday))}`
+        : 'Limit Expired')
+    : `Daily ${formatCurrency(dailySafeSpend)}`;
+
   return (
     <div className="quick-actions-container">
       {/* 1. Add Expense (Primary Emphasized Action) */}
@@ -42,15 +50,15 @@ export const QuickActions = ({
       {/* 3. Daily Safe Limit (Toggles Dynamic Breakdown) */}
       <button
         type="button"
-        className={`quick-action-card ${isDailyLimitActive ? 'active-limit' : ''} ${isLimitExpired ? 'expired-limit' : ''}`}
+        className={`quick-action-card ${isDailyLimitActive ? 'active-limit' : ''} ${isOver ? 'expired-limit' : ''}`}
         onClick={onToggleDailyLimit}
         title="Toggle Dynamic Safe Limit Breakdown"
       >
-        <div className={`quick-action-icon-circle ${isLimitExpired ? 'expired' : 'accent'}`}>
+        <div className={`quick-action-icon-circle ${isOver ? 'expired' : 'accent'}`}>
           <Compass size={20} color="#FFFFFF" strokeWidth={2.2} />
         </div>
-        <span className={`quick-action-label ${isLimitExpired ? 'expired' : 'accent'}`}>
-          {isLimitExpired ? 'Limit Expired' : `Daily ${formatCurrency(dailySafeSpend)}`}
+        <span className={`quick-action-label ${isOver ? 'expired' : 'accent'}`}>
+          {dailyLabel}
         </span>
       </button>
 
