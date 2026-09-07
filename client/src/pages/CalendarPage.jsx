@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { CalendarView } from '../components/CalendarView';
+import { Skeleton } from '../components/Skeleton';
 import { formatCurrency } from '../utils/currency';
 import { formatMonthYear } from '../utils/date';
-import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const CalendarPage = () => {
-  const { currentMonth, currentYear, refreshKey } = useApp();
+  const { currentMonth, currentYear, refreshKey, prevMonth, nextMonth } = useApp();
 
   const [calendarData, setCalendarData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -34,73 +35,120 @@ export const CalendarPage = () => {
     };
   }, [currentMonth, currentYear, refreshKey]);
 
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <Skeleton height="78px" borderRadius="var(--radius-xl)" />
+        <Skeleton height="410px" borderRadius="var(--radius-xl)" />
+      </div>
+    );
+  }
+
   return (
     <div>
-      {/* Calendar Header Banner */}
+      {/* Compact Modern Calendar Header Card */}
       <div
         style={{
           background: '#FFFFFF',
           border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-xl)',
-          padding: '1.75rem',
-          boxShadow: 'var(--shadow-card)',
-          marginBottom: '1.5rem',
+          padding: '1rem 1.25rem',
+          marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.75rem',
         }}
       >
-        <div>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            Calendar Schedule
-          </span>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0.2rem 0' }}>
-            {formatMonthYear(currentMonth, currentYear)}
-          </h2>
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-            Track daily food spending by date. Tap on any date to inspect transactions or add a new expense.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: '#F0FDF4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <CalendarIcon size={20} color="#10B981" />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Calendar Schedule
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0, lineHeight: 1.2 }}>
+                {formatMonthYear(currentMonth, currentYear)}
+              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: '4px' }}>
+                <button
+                  type="button"
+                  onClick={prevMonth}
+                  title="Previous month"
+                  style={{
+                    border: '1px solid #E2E8F0',
+                    background: '#F8FAFC',
+                    borderRadius: '6px',
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    padding: 0,
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={nextMonth}
+                  title="Next month"
+                  style={{
+                    border: '1px solid #E2E8F0',
+                    background: '#F8FAFC',
+                    borderRadius: '6px',
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    padding: 0,
+                  }}
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div style={{ textAlign: 'right' }}>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-            Total Month Spent
+          <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600, display: 'block' }}>
+            Month Spent
           </span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
             {formatCurrency(calendarData.totalSpent || 0)}
           </div>
         </div>
       </div>
 
       {/* Calendar Grid View */}
-      {isLoading ? (
-        <div
-          style={{
-            minHeight: '440px',
-            background: '#FFFFFF',
-            border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-xl)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-          }}
-        >
-          <Loader2 size={36} color="#059669" className="animate-spin" />
-          <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#64748B' }}>
-            Loading calendar schedule...
-          </span>
-        </div>
-      ) : (
-        <CalendarView
-          calendarData={calendarData}
-          month={currentMonth}
-          year={currentYear}
-        />
-      )}
+      <CalendarView
+        calendarData={calendarData}
+        month={currentMonth}
+        year={currentYear}
+      />
     </div>
   );
 };
+
+export default CalendarPage;

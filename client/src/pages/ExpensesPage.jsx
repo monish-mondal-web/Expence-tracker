@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { ExpenseList } from '../components/ExpenseList';
+import { Skeleton } from '../components/Skeleton';
 import { formatCurrency } from '../utils/currency';
 import { formatMonthYear } from '../utils/date';
 import { Search, Filter, ArrowUpDown, Plus } from 'lucide-react';
@@ -45,6 +46,21 @@ export const ExpensesPage = () => {
     };
   }, [currentMonth, currentYear, selectedCategory, search, sortOrder, refreshKey]);
 
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <Skeleton height="95px" borderRadius="var(--radius-xl)" />
+        <Skeleton height="56px" borderRadius="var(--radius-lg)" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <Skeleton height="64px" borderRadius="var(--radius-lg)" />
+          <Skeleton height="64px" borderRadius="var(--radius-lg)" />
+          <Skeleton height="64px" borderRadius="var(--radius-lg)" />
+          <Skeleton height="64px" borderRadius="var(--radius-lg)" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Monthly Total Header Banner */}
@@ -53,24 +69,23 @@ export const ExpensesPage = () => {
           background: '#FFFFFF',
           border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-xl)',
-          padding: '1.75rem',
-          boxShadow: 'var(--shadow-card)',
-          marginBottom: '1.5rem',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '1rem',
+          gap: '0.75rem',
         }}
       >
         <div>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
             {formatMonthYear(currentMonth, currentYear)}
           </span>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)', margin: '0.2rem 0' }}>
-            Total Food Expense
+          <h2 style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-secondary)', margin: '0.1rem 0' }}>
+            Total Expenses
           </h2>
-          <div style={{ fontSize: '2.4rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
             {formatCurrency(totalAmount)}
           </div>
         </div>
@@ -79,9 +94,9 @@ export const ExpensesPage = () => {
           type="button"
           className="btn-primary"
           onClick={() => openAddExpense()}
-          style={{ width: 'auto', margin: 0, padding: '0.75rem 1.25rem' }}
+          style={{ width: 'auto', margin: 0, padding: '0.65rem 1.25rem' }}
         >
-          <Plus size={18} />
+          <Plus size={17} />
           <span>Add Expense</span>
         </button>
       </div>
@@ -92,36 +107,51 @@ export const ExpensesPage = () => {
           background: '#FFFFFF',
           border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-lg)',
-          padding: '1rem 1.25rem',
-          boxShadow: 'var(--shadow-subtle)',
-          marginBottom: '1.5rem',
+          padding: '0.85rem 1rem',
+          marginBottom: '1.25rem',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '0.75rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '0.65rem',
           alignItems: 'center',
         }}
       >
         {/* Search */}
         <div style={{ position: 'relative' }}>
-          <Search size={16} color="var(--text-tertiary)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={16} color="var(--text-tertiary)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="text"
             placeholder="Search notes or category..."
             className="form-input"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: '2.4rem', paddingRight: '0.75rem', height: '42px', fontSize: '0.88rem' }}
+            style={{
+              padding: '0.55rem 0.85rem 0.55rem 2.4rem',
+              height: '44px',
+              fontSize: '0.88rem',
+              lineHeight: '1.4',
+              borderRadius: '10px',
+              boxSizing: 'border-box',
+            }}
           />
         </div>
 
         {/* Category Filter */}
         <div style={{ position: 'relative' }}>
-          <Filter size={15} color="var(--text-tertiary)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+          <Filter size={15} color="var(--text-tertiary)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <select
             className="form-input"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            style={{ paddingLeft: '2.3rem', height: '42px', fontSize: '0.88rem' }}
+            style={{
+              padding: '0.55rem 1.8rem 0.55rem 2.4rem',
+              height: '44px',
+              fontSize: '0.88rem',
+              lineHeight: '1.4',
+              color: '#0F172A',
+              borderRadius: '10px',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+            }}
           >
             <option value="All">All Categories</option>
             {categories.map((c) => (
@@ -134,12 +164,21 @@ export const ExpensesPage = () => {
 
         {/* Sort Order */}
         <div style={{ position: 'relative' }}>
-          <ArrowUpDown size={15} color="var(--text-tertiary)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
+          <ArrowUpDown size={15} color="var(--text-tertiary)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <select
             className="form-input"
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
-            style={{ paddingLeft: '2.3rem', height: '42px', fontSize: '0.88rem' }}
+            style={{
+              padding: '0.55rem 1.8rem 0.55rem 2.4rem',
+              height: '44px',
+              fontSize: '0.88rem',
+              lineHeight: '1.4',
+              color: '#0F172A',
+              borderRadius: '10px',
+              boxSizing: 'border-box',
+              cursor: 'pointer',
+            }}
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -150,13 +189,9 @@ export const ExpensesPage = () => {
       </div>
 
       {/* Expenses List */}
-      {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
-          Loading food expenses...
-        </div>
-      ) : (
-        <ExpenseList expenses={expenses} title="All Food Expenses" />
-      )}
+      <ExpenseList expenses={expenses} title="All Expenses" />
     </div>
   );
 };
+
+export default ExpensesPage;

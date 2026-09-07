@@ -1727,6 +1727,14 @@ button, input, select, textarea {
   box-shadow: none !important;
 }
 
+select.form-input {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  line-height: 1.4;
+  min-height: 42px;
+  cursor: pointer;
+}
+
 .amount-input-wrapper {
   position: relative;
   display: flex;
