@@ -42,15 +42,19 @@ const validateExpensePayload = (req, res, next) => {
 };
 
 const validateBudgetPayload = (req, res, next) => {
-  const { budgetAmount, month, year } = req.body;
+  const { budgetAmount, categoryBudgets, month, year } = req.body;
 
-  if (budgetAmount === undefined || budgetAmount === null || budgetAmount === '') {
-    return res.status(400).json({ success: false, error: 'Budget amount is required' });
+  let computedBudget = budgetAmount !== undefined && budgetAmount !== null && budgetAmount !== ''
+    ? Number(budgetAmount)
+    : NaN;
+
+  if (isNaN(computedBudget) && Array.isArray(categoryBudgets) && categoryBudgets.length > 0) {
+    computedBudget = categoryBudgets.reduce((sum, c) => sum + (Number(c?.amount) || 0), 0);
+    req.body.budgetAmount = computedBudget;
   }
 
-  const numBudget = Number(budgetAmount);
-  if (isNaN(numBudget) || numBudget < 0) {
-    return res.status(400).json({ success: false, error: 'Budget must be a non-negative number' });
+  if (isNaN(computedBudget) || computedBudget < 0) {
+    return res.status(400).json({ success: false, error: 'Valid budget amount or category allocations required' });
   }
 
   if (month !== undefined) {

@@ -90,6 +90,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
+  resetBudget: (id) =>
+    request(`/monthly-budget/${id}`, {
+      method: 'DELETE',
+    }),
 
   // Expenses
   getExpenses: (filters = {}) => {

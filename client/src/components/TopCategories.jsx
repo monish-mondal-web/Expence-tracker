@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { formatCurrency } from '../utils/currency';
 import { CategoryIcon } from './CategoryIcon';
-import { ChevronRight, ShoppingCart, Fish, Cookie, Utensils } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const CATEGORY_STYLES = {
   groceries: { bg: '#DBEAFE', color: '#2563EB', bar: '#3B82F6', icon: 'ShoppingCart' },

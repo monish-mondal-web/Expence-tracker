@@ -1,5 +1,6 @@
 const MonthlyBudget = require('../models/MonthlyBudget');
 const Expense = require('../models/Expense');
+const Category = require('../models/Category');
 const { getOrCreateDefaultUser } = require('../services/userService');
 const { calculateMetrics, getMonthYearRange } = require('../services/budgetService');
 
@@ -19,6 +20,17 @@ exports.getDashboardData = async (req, res, next) => {
     });
 
     const monthlyBudgetAmount = budgetDoc ? budgetDoc.budgetAmount : 0;
+    const categoryBudgets = budgetDoc && Array.isArray(budgetDoc.categoryBudgets)
+      ? budgetDoc.categoryBudgets
+      : [];
+
+    // Map of budgeted categories
+    const budgetMap = {};
+    categoryBudgets.forEach((cb) => {
+      if (cb && cb.category) {
+        budgetMap[cb.category] = Number(cb.amount) || 0;
+      }
+    });
 
     // 2. Fetch expenses for this month
     const expenses = await Expense.find({
@@ -63,7 +75,57 @@ exports.getDashboardData = async (req, res, next) => {
       daysTracked,
     });
 
-    // 6. Recent expenses for quick dashboard list (latest 8)
+    // 6. Category breakdown combining budgeted and spent categories
+    const categoryTotals = {};
+    const categoryCounts = {};
+    expenses.forEach((e) => {
+      const cat = e.category || 'Other';
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + e.amount;
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+
+    // Categories metadata for icons and colors
+    const allCategoriesMeta = await Category.find({
+      $or: [{ userId: user._id }, { userId: null }],
+    });
+    const metaMap = {};
+    allCategoriesMeta.forEach((c) => {
+      metaMap[c.name] = { color: c.color, icon: c.icon };
+    });
+
+    // Union of categories that either have an expense or a budget
+    const allCategoryNames = new Set([
+      ...Object.keys(categoryTotals),
+      ...Object.keys(budgetMap),
+    ]);
+
+    const fallbackColors = [
+      '#10B981', '#3B82F6', '#EC4899', '#F59E0B', '#8B5CF6',
+      '#06B6D4', '#EF4444', '#6366F1', '#D97706', '#64748B',
+    ];
+
+    const categoryBreakdown = Array.from(allCategoryNames).map((catName, idx) => {
+      const spent = Math.round((categoryTotals[catName] || 0) * 100) / 100;
+      const budget = Math.round((budgetMap[catName] || 0) * 100) / 100;
+      const remaining = budget > 0 ? Math.round((budget - spent) * 100) / 100 : null;
+      const percent = budget > 0
+        ? Math.min(100, Math.round((spent / budget) * 100))
+        : (totalSpent > 0 ? Math.round((spent / totalSpent) * 100) : 0);
+
+      const meta = metaMap[catName] || {};
+      return {
+        category: catName,
+        spent,
+        budget,
+        remaining,
+        percent,
+        count: categoryCounts[catName] || 0,
+        color: meta.color || fallbackColors[idx % fallbackColors.length],
+        icon: meta.icon || 'Utensils',
+      };
+    }).sort((a, b) => (b.budget || b.spent) - (a.budget || a.spent));
+
+    // 7. Recent expenses for quick dashboard list (latest 8)
     const recentExpenses = expenses.slice(0, 8);
 
     res.json({
@@ -74,6 +136,8 @@ exports.getDashboardData = async (req, res, next) => {
         month,
         year,
         ...metrics,
+        categoryBudgets,
+        categoryBreakdown,
         recentExpenses,
       },
     });

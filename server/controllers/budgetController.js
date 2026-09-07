@@ -31,11 +31,27 @@ exports.getMonthlyBudget = async (req, res, next) => {
 exports.setMonthlyBudget = async (req, res, next) => {
   try {
     const user = req.user || (await getOrCreateDefaultUser());
-    const { budgetAmount, month, year } = req.body;
+    const { budgetAmount, categoryBudgets, month, year } = req.body;
 
     const now = new Date();
     const targetMonth = month ? Number(month) : now.getMonth() + 1;
     const targetYear = year ? Number(year) : now.getFullYear();
+
+    let parsedCategoryBudgets = [];
+    if (Array.isArray(categoryBudgets)) {
+      parsedCategoryBudgets = categoryBudgets
+        .filter((c) => c && c.category && typeof c.category === 'string')
+        .map((c) => ({
+          category: c.category.trim(),
+          amount: Math.max(0, Number(c.amount) || 0),
+        }));
+    }
+
+    // If budgetAmount was not passed or 0, but category splits were passed, sum them up
+    let finalBudgetAmount = Number(budgetAmount) || 0;
+    if (finalBudgetAmount <= 0 && parsedCategoryBudgets.length > 0) {
+      finalBudgetAmount = parsedCategoryBudgets.reduce((sum, c) => sum + c.amount, 0);
+    }
 
     const budget = await MonthlyBudget.findOneAndUpdate(
       {
@@ -44,7 +60,8 @@ exports.setMonthlyBudget = async (req, res, next) => {
         year: targetYear,
       },
       {
-        budgetAmount: Number(budgetAmount),
+        budgetAmount: finalBudgetAmount,
+        categoryBudgets: parsedCategoryBudgets,
       },
       {
         new: true,
@@ -56,7 +73,7 @@ exports.setMonthlyBudget = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Monthly food budget saved successfully',
+      message: 'Monthly budget saved successfully',
       data: budget,
     });
   } catch (error) {
@@ -69,11 +86,24 @@ exports.updateMonthlyBudget = async (req, res, next) => {
   try {
     const user = req.user || (await getOrCreateDefaultUser());
     const { id } = req.params;
-    const { budgetAmount } = req.body;
+    const { budgetAmount, categoryBudgets } = req.body;
+
+    const updateData = {};
+    if (budgetAmount !== undefined) {
+      updateData.budgetAmount = Math.max(0, Number(budgetAmount) || 0);
+    }
+    if (Array.isArray(categoryBudgets)) {
+      updateData.categoryBudgets = categoryBudgets
+        .filter((c) => c && c.category)
+        .map((c) => ({
+          category: c.category.trim(),
+          amount: Math.max(0, Number(c.amount) || 0),
+        }));
+    }
 
     const budget = await MonthlyBudget.findOneAndUpdate(
       { _id: id, userId: user._id },
-      { budgetAmount: Number(budgetAmount) },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -83,8 +113,28 @@ exports.updateMonthlyBudget = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Monthly food budget updated successfully',
+      message: 'Monthly budget updated successfully',
       data: budget,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/monthly-budget/:id (Reset budget)
+exports.resetMonthlyBudget = async (req, res, next) => {
+  try {
+    const user = req.user || (await getOrCreateDefaultUser());
+    const { id } = req.params;
+
+    const budget = await MonthlyBudget.findOneAndDelete({ _id: id, userId: user._id });
+    if (!budget) {
+      return res.status(404).json({ success: false, error: 'Budget record not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Monthly budget reset successfully',
     });
   } catch (error) {
     next(error);

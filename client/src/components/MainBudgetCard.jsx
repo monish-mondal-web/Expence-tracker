@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { formatCurrency } from '../utils/currency';
+import { useApp } from '../context/AppContext';
+import { CategoryIcon } from './CategoryIcon';
 import {
   ArrowUpRight,
   Pencil,
@@ -8,6 +10,10 @@ import {
   ShieldCheck,
   ChevronDown,
   Utensils,
+  MoreVertical,
+  SlidersHorizontal,
+  Layers,
+  Trash2,
 } from 'lucide-react';
 
 export const MainBudgetCard = ({
@@ -16,8 +22,27 @@ export const MainBudgetCard = ({
   isExpanded: controlledExpanded,
   onToggleExpand,
 }) => {
+  const { requestConfirm, resetBudgetOptimistic } = useApp();
   const [internalExpanded, setInternalExpanded] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
+
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   const toggleExpanded = () => {
     if (onToggleExpand) {
@@ -29,6 +54,7 @@ export const MainBudgetCard = ({
 
   const budget = data?.monthlyBudget || 0;
   const hasBudget = data?.hasBudget && budget > 0;
+  const categoryBreakdown = data?.categoryBreakdown || [];
 
   const totalSpent = data?.totalSpent || 0;
   const remainingBudget = data?.remainingBudget || 0;
@@ -87,6 +113,19 @@ export const MainBudgetCard = ({
   const isOverLimit = isDailyLimitExpired;
   const isApproaching = isDailyLimitApproaching;
 
+  const handleResetBudget = () => {
+    setIsMenuOpen(false);
+    requestConfirm({
+      title: 'Reset Monthly Budget',
+      message: 'Are you sure you want to reset your monthly budget allocations? Your logged expenses will remain safe.',
+      confirmLabel: 'Reset Budget',
+      danger: true,
+      onConfirm: () => {
+        resetBudgetOptimistic(data?.budgetId);
+      },
+    });
+  };
+
   if (!hasBudget) {
     return (
       <div className="fintech-budget-card empty">
@@ -95,10 +134,10 @@ export const MainBudgetCard = ({
             <Utensils size={28} color="#34D399" />
           </div>
           <h3 style={{ color: '#FFFFFF', fontSize: '1.25rem', fontWeight: 800, margin: '0.6rem 0 0.3rem' }}>
-            Set Food Budget
+            Set Monthly Budget
           </h3>
           <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-            Set your monthly food budget to activate live pace tracking, daily limits, and dynamic safe zone recommendations.
+            Set or split your monthly budget across categories (Food, Travel, Shopping, Bills) to activate live pace tracking.
           </p>
           <button
             type="button"
@@ -107,7 +146,7 @@ export const MainBudgetCard = ({
             style={{ margin: '0 auto', display: 'inline-flex', padding: '0.6rem 1.4rem' }}
           >
             <Pencil size={13} />
-            <span>Set Monthly Budget</span>
+            <span>Set / Split Budget</span>
           </button>
         </div>
       </div>
@@ -115,28 +154,162 @@ export const MainBudgetCard = ({
   }
 
   return (
-    <div className="fintech-budget-card">
-      {/* Top Row: Food Budget Header & Edit Pill Button */}
+    <div
+      className={`fintech-budget-card ${isOverLimit ? 'over-limit' : ''} ${isApproaching ? 'approaching' : ''}`}
+      onClick={toggleExpanded}
+      role="region"
+      aria-label="Monthly Budget and Dynamic Safe Limit Card"
+    >
+      {/* Top Header Row */}
       <div className="budget-card-header">
         <div className="budget-title-group">
           <div className="budget-icon-square">
             <ArrowUpRight size={22} color="#34D399" strokeWidth={2.4} />
           </div>
           <div>
-            <div className="budget-card-title">Monthly Food Budget</div>
-            <div className="budget-card-subtitle">Your monthly budget</div>
+            <div className="budget-card-title">Monthly Budget</div>
+            <div className="budget-card-subtitle">
+              {categoryBreakdown.filter((c) => c.budget > 0).length > 0
+                ? `${categoryBreakdown.filter((c) => c.budget > 0).length} Categories Allocated`
+                : 'Your monthly budget'}
+            </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          className="budget-edit-pill"
-          onClick={onSetBudget}
-          title="Edit monthly food budget"
+        {/* Header Action Buttons & Vertical Ellipsis */}
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', position: 'relative' }}
+          ref={menuRef}
+          onClick={(e) => e.stopPropagation()}
         >
-          <Pencil size={12} strokeWidth={2.2} />
-          <span>Edit</span>
-        </button>
+          <button
+            type="button"
+            className="budget-edit-pill"
+            onClick={onSetBudget}
+            title="Edit / Split monthly budget"
+          >
+            <Pencil size={12} strokeWidth={2.2} />
+            <span>Edit</span>
+          </button>
+
+          {/* Vertical Ellipsis Button */}
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            title="Budget Options"
+            aria-label="Budget options menu"
+            style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: isMenuOpen ? 'rgba(255, 255, 255, 0.16)' : 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.14)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <MoreVertical size={16} />
+          </button>
+
+          {/* Vertical Ellipsis Dropdown Menu */}
+          {isMenuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: '38px',
+                background: '#0F172A',
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                borderRadius: '12px',
+                padding: '6px',
+                width: '200px',
+                zIndex: 60,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '3px',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onSetBudget();
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#F8FAFC',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  textAlign: 'left',
+                }}
+              >
+                <SlidersHorizontal size={14} color="#34D399" />
+                <span>Split by Category</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  toggleExpanded();
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#F8FAFC',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  textAlign: 'left',
+                }}
+              >
+                <Layers size={14} color="#38BDF8" />
+                <span>{isExpanded ? 'Hide Category Split' : 'View Category Split'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetBudget}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#FB7185',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  textAlign: 'left',
+                }}
+              >
+                <Trash2 size={14} color="#FB7185" />
+                <span>Reset Budget</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Budget Amount & Dynamic Status Pill */}
@@ -178,75 +351,55 @@ export const MainBudgetCard = ({
       {/* Modern Progress Bar */}
       <div className="budget-progress-track">
         <div
-          className="budget-progress-fill"
+          className={`budget-progress-fill ${isOverLimit ? 'over' : isApproaching ? 'warning' : 'safe'}`}
+          style={{ width: `${Math.min(100, spentPercent)}%` }}
+        />
+      </div>
+
+      {/* Pacing Stats: Safe Daily Spend Target & Average Per Day */}
+      <div className="budget-pace-banner">
+        <div className="pace-item">
+          <span className="pace-label">
+            <CalendarDays size={12} color="#94A3B8" />
+            <span>Today's Safe Limit</span>
+          </span>
+          <span className="pace-value emerald">
+            {formatCurrency(effectiveSafeDaily)}
+          </span>
+        </div>
+
+        <div className="pace-divider" />
+
+        <div className="pace-item">
+          <span className="pace-label">
+            <TrendingUp size={12} color="#94A3B8" />
+            <span>Your Daily Avg</span>
+          </span>
+          <span className="pace-value">
+            {formatCurrency(yourAverage)}
+          </span>
+        </div>
+      </div>
+
+      {/* Clickable Expand / Collapse Indicator */}
+      <div className="budget-expand-hint">
+        <span>{isExpanded ? 'Hide detailed breakdown' : 'Tap for daily safe breakdown & category split'}</span>
+        <ChevronDown
+          size={14}
           style={{
-            width: `${spentPercent}%`,
-            background: isOverLimit ? '#FB7185' : isApproaching ? '#FBBF24' : '#10B981',
+            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.25s ease',
           }}
         />
       </div>
 
-      {/* 3 Metric Columns Row (Distinct Overview - Click to toggle breakdown) */}
+      {/* Expandable Breakdown Drawer with Detailed Safe Zone Calculations */}
       <div
-        className="budget-metrics-row"
-        onClick={toggleExpanded}
-        title="Click to view Dynamic Safe Limit breakdown"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleExpanded();
-          }
-        }}
+        className={`budget-breakdown-expandable ${isExpanded ? 'open' : ''}`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Metric 1: Daily Limit & Today's Remaining / -Over */}
-        <div className="budget-metric-col">
-          <div className={`metric-col-icon ${safeRemainingToday < 0 ? 'pink' : ''}`}>
-            <CalendarDays size={15} color={safeRemainingToday < 0 ? '#FB7185' : '#34D399'} />
-          </div>
-          <div className="metric-col-content">
-            <div className="metric-col-val" style={{ color: safeRemainingToday < 0 ? '#FDA4AF' : '#FFFFFF' }}>
-              {formatCurrency(effectiveSafeDaily)}/day
-            </div>
-            <div
-              className="metric-col-label"
-              style={{
-                color: safeRemainingToday < 0 ? '#FB7185' : '#34D399',
-                fontWeight: 600,
-              }}
-            >
-              {safeRemainingToday < 0
-                ? `-${formatCurrency(Math.abs(safeRemainingToday))} over`
-                : `${formatCurrency(safeRemainingToday)} left today`}
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 2: Your Average */}
-        <div className="budget-metric-col">
-          <div className="metric-col-icon">
-            <TrendingUp size={15} color="#34D399" />
-          </div>
-          <div className="metric-col-content">
-            <div className="metric-col-val">{formatCurrency(yourAverage)}/day</div>
-            <div className="metric-col-label">Your average</div>
-          </div>
-        </div>
-
-        {/* Dynamic Safe Limit breakdown toggle */}
-        <div className="budget-metric-col-toggle" title="View safe limit formula and breakdown">
-          <ChevronDown
-            size={16}
-            className={`metric-chevron ${isExpanded ? 'rotated' : ''}`}
-          />
-        </div>
-      </div>
-
-      {/* Dynamic Safe Limit Breakdown Drawer with Smooth Accordion Animation */}
-      <div className={`card-dynamic-breakdown-wrapper ${isExpanded ? 'open' : ''}`}>
-        <div className="card-dynamic-breakdown-inner">
-          <div className="card-dynamic-breakdown">
+        <div className="budget-breakdown-inner">
+          <div className="budget-breakdown-card">
             <div className="breakdown-header">
               <div className="breakdown-title">
                 <ShieldCheck size={14} color="#34D399" />
@@ -321,9 +474,71 @@ export const MainBudgetCard = ({
                 <span>{smartMessage}</span>
               </div>
             )}
+
+            {/* Category Split Allocations Progress */}
+            {categoryBreakdown && categoryBreakdown.length > 0 && (
+              <div style={{ marginTop: '0.85rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Category Budget Pacing
+                  </span>
+                  <span style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 600 }}>
+                    {categoryBreakdown.filter((c) => c.budget > 0).length} Allocated
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                  {categoryBreakdown.map((item) => {
+                    const hasCatBudget = item.budget > 0;
+                    return (
+                      <div
+                        key={item.category}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.04)',
+                          borderRadius: '8px',
+                          padding: '7px 10px',
+                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <CategoryIcon name={item.icon} size={13} color={item.color || '#34D399'} />
+                            <span style={{ fontSize: '0.8rem', color: '#F1F5F9', fontWeight: 600 }}>
+                              {item.category}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#E2E8F0', fontWeight: 700 }}>
+                            {formatCurrency(item.spent)}
+                            {hasCatBudget && (
+                              <span style={{ color: '#94A3B8', fontWeight: 500 }}> / {formatCurrency(item.budget)}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Mini progress bar */}
+                        {hasCatBudget && (
+                          <div style={{ width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                width: `${Math.min(100, Math.round((item.spent / item.budget) * 100))}%`,
+                                height: '100%',
+                                background: item.spent > item.budget ? '#FB7185' : (item.color || '#34D399'),
+                                borderRadius: '2px',
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+export default MainBudgetCard;

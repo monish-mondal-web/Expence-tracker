@@ -6,5 +6,6 @@ const { validateBudgetPayload, validateObjectId } = require('../middleware/valid
 router.get('/', budgetController.getMonthlyBudget);
 router.post('/', validateBudgetPayload, budgetController.setMonthlyBudget);
 router.put('/:id', validateObjectId('id'), validateBudgetPayload, budgetController.updateMonthlyBudget);
+router.delete('/:id', validateObjectId('id'), budgetController.resetMonthlyBudget);
 
 module.exports = router;

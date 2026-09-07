@@ -109,12 +109,32 @@ export const CategoryBreakdown = ({ breakdown = [], totalSpent = 0 }) => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+              <div style={{ textAlign: 'right' }}>
+                <strong style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>
+                  {formatCurrency(item.total)}
+                  {item.budget > 0 && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
+                      {' '}/ {formatCurrency(item.budget)}
+                    </span>
+                  )}
+                </strong>
+                {item.budget > 0 && (
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      color: item.remaining < 0 ? '#FB7185' : '#10B981',
+                    }}
+                  >
+                    {item.remaining < 0
+                      ? `${formatCurrency(Math.abs(item.remaining))} over`
+                      : `${formatCurrency(item.remaining)} left`}
+                  </span>
+                )}
+              </div>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600, minWidth: '36px', textAlign: 'right' }}>
                 {item.percentage}%
               </span>
-              <strong style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {formatCurrency(item.total)}
-              </strong>
             </div>
           </div>
         ))}

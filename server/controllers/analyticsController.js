@@ -106,21 +106,35 @@ exports.getAnalytics = async (req, res, next) => {
       '#EF4444', '#8B5CF6', '#14B8A6', '#F97316', '#64748B'
     ];
 
-    const categoryBreakdown = Object.keys(categoryTotals)
+    const budgetMap = {};
+    if (budgetDoc && Array.isArray(budgetDoc.categoryBudgets)) {
+      budgetDoc.categoryBudgets.forEach((cb) => {
+        if (cb && cb.category) budgetMap[cb.category] = Number(cb.amount) || 0;
+      });
+    }
+
+    const allCatNames = new Set([...Object.keys(categoryTotals), ...Object.keys(budgetMap)]);
+
+    const categoryBreakdown = Array.from(allCatNames)
       .map((catName, idx) => {
-        const catSpent = Math.round(categoryTotals[catName] * 100) / 100;
-        const percentage = totalSpent > 0 ? Math.round((catSpent / totalSpent) * 1000) / 10 : 0;
+        const catSpent = Math.round((categoryTotals[catName] || 0) * 100) / 100;
+        const catBudget = Math.round((budgetMap[catName] || 0) * 100) / 100;
+        const percentage = catBudget > 0
+          ? Math.min(100, Math.round((catSpent / catBudget) * 100))
+          : (totalSpent > 0 ? Math.round((catSpent / totalSpent) * 1000) / 10 : 0);
         const meta = categoryMetaMap[catName] || {};
         return {
           category: catName,
           total: catSpent,
+          budget: catBudget,
+          remaining: catBudget > 0 ? Math.round((catBudget - catSpent) * 100) / 100 : null,
           percentage,
           count: categoryCounts[catName] || 0,
           color: meta.color || fallbackColors[idx % fallbackColors.length],
           icon: meta.icon || 'Utensils',
         };
       })
-      .sort((a, b) => b.total - a.total);
+      .sort((a, b) => (b.budget || b.total) - (a.budget || a.total));
 
     // 7. Peak day
     let peakDay = null;

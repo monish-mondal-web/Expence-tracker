@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { CategoryIcon } from './CategoryIcon';
 import { toLocalISODate } from '../utils/date';
+import { formatCurrency } from '../utils/currency';
 import { X, Check } from 'lucide-react';
 
 export const AddExpenseModal = () => {
@@ -12,6 +13,7 @@ export const AddExpenseModal = () => {
     editingExpense,
     preselectedDate,
     categories,
+    dashboardData,
     triggerRefresh,
     showToast,
     addExpenseOptimistic,
@@ -92,7 +94,7 @@ export const AddExpenseModal = () => {
     <div className="modal-overlay" onClick={closeAddExpense}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{editingExpense ? 'Edit Food Expense' : 'Add Food Expense'}</h3>
+          <h3>{editingExpense ? 'Edit Expense' : 'Add Expense'}</h3>
           <button type="button" className="modal-close-btn" onClick={closeAddExpense}>
             <X size={18} />
           </button>
@@ -130,9 +132,35 @@ export const AddExpenseModal = () => {
             />
           </div>
 
-          {/* Category Chips */}
+          {/* Category Chips with Live Budget Info */}
           <div className="form-group">
-            <label className="form-label">Category</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+              <label className="form-label" style={{ margin: 0 }}>Category</label>
+              {(() => {
+                const catItem = dashboardData?.categoryBreakdown?.find((c) => c.category === category);
+                if (catItem && catItem.budget > 0) {
+                  const isOver = catItem.remaining !== null && catItem.remaining < 0;
+                  return (
+                    <span
+                      style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        color: isOver ? '#FB7185' : '#10B981',
+                        background: isOver ? '#FFF1F2' : '#F0FDF4',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        border: `1px solid ${isOver ? '#FECDD3' : '#BBF7D0'}`,
+                      }}
+                    >
+                      {isOver
+                        ? `${formatCurrency(Math.abs(catItem.remaining))} over budget`
+                        : `${formatCurrency(catItem.remaining)} left of ${formatCurrency(catItem.budget)}`}
+                    </span>
+                  );
+                }
+                return null;
+              })()}
+            </div>
             <div className="category-chips-grid">
               {categories.map((cat) => {
                 const isSelected = category === cat.name;

@@ -30,6 +30,12 @@ import {
   Receipt,
   Store,
   Tag,
+  Car,
+  Zap,
+  Film,
+  HeartPulse,
+  GraduationCap,
+  Home,
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -63,6 +69,12 @@ const ICON_MAP = {
   Receipt,
   Store,
   Tag,
+  Car,
+  Zap,
+  Film,
+  HeartPulse,
+  GraduationCap,
+  Home,
 };
 
 // Intelligent semantic fallback based on food names
@@ -85,6 +97,13 @@ const NAME_KEYWORD_MAP = [
   { keywords: ['ice cream', 'gelato'], icon: IceCream },
   { keywords: ['soup', 'broth', 'ramen', 'noodles'], icon: Soup },
   { keywords: ['egg', 'omelet'], icon: Egg },
+  { keywords: ['travel', 'transport', 'uber', 'ola', 'auto', 'cab', 'bus', 'train', 'metro', 'petrol', 'fuel'], icon: Car },
+  { keywords: ['bill', 'electricity', 'power', 'water bill', 'recharge', 'wifi', 'internet'], icon: Zap },
+  { keywords: ['movie', 'cinema', 'theatre', 'netflix', 'entertainment', 'show', 'game'], icon: Film },
+  { keywords: ['shopping', 'clothes', 'dress', 'fashion', 'mall', 'amazon', 'flipkart'], icon: ShoppingBag },
+  { keywords: ['health', 'medical', 'medicine', 'doctor', 'clinic', 'hospital', 'pharmacy'], icon: HeartPulse },
+  { keywords: ['study', 'education', 'book', 'course', 'college', 'school', 'tuition'], icon: GraduationCap },
+  { keywords: ['rent', 'house', 'home', 'maintenance'], icon: Home },
 ];
 
 export const CategoryIcon = ({ name = 'Utensils', size = 20, color = '#64748B' }) => {

@@ -9,9 +9,6 @@ import { Skeleton } from '../components/Skeleton';
 import {
   PieChart as PieIcon,
   TrendingUp,
-  Shield,
-  Calendar,
-  AlertCircle,
 } from 'lucide-react';
 
 export const AnalyticsPage = () => {

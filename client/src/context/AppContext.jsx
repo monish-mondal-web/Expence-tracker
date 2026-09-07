@@ -327,8 +327,11 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const setBudgetOptimistic = async ({ budgetAmount, month, year }) => {
-    const num = Number(budgetAmount);
+  const setBudgetOptimistic = async ({ budgetAmount, categoryBudgets = [], month, year }) => {
+    let num = Number(budgetAmount);
+    if ((isNaN(num) || num <= 0) && Array.isArray(categoryBudgets) && categoryBudgets.length > 0) {
+      num = categoryBudgets.reduce((sum, c) => sum + (Number(c?.amount) || 0), 0);
+    }
 
     // 1. INSTANT LOCAL STATE UPDATE
     setDashboardData((prev) => {
@@ -340,25 +343,54 @@ export const AppProvider = ({ children }) => {
 
       return {
         ...prev,
-        hasBudget: true,
+        hasBudget: num > 0,
         monthlyBudget: num,
         baseDailyBudget: baseDaily,
         safeDailyBudget: safeDaily,
         remainingBudget: remaining,
         budgetUsedPercentage: pct,
         safeRemainingToday: safeDaily - prev.todaySpent,
+        categoryBudgets,
       };
     });
 
-    showToast('Budget updated');
+    showToast('Budget saved successfully');
     closeSetBudget();
 
     // 2. BACKGROUND SERVER SYNC
     try {
-      await api.setBudget({ budgetAmount: num, month, year });
+      await api.setBudget({ budgetAmount: num, categoryBudgets, month, year });
       triggerRefresh();
     } catch (err) {
       showToast(err.message || 'Failed to sync budget to server', 'error');
+      triggerRefresh();
+    }
+  };
+
+  const resetBudgetOptimistic = async (budgetId) => {
+    setDashboardData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        hasBudget: false,
+        monthlyBudget: 0,
+        safeDailyBudget: 0,
+        dynamicSafeDailyBudget: 0,
+        remainingBudget: 0,
+        budgetUsedPercentage: 0,
+        categoryBudgets: [],
+      };
+    });
+
+    showToast('Monthly budget reset');
+
+    try {
+      if (budgetId) {
+        await api.resetBudget(budgetId);
+      }
+      triggerRefresh();
+    } catch (err) {
+      showToast(err.message || 'Failed to reset budget', 'error');
       triggerRefresh();
     }
   };
@@ -398,6 +430,7 @@ export const AppProvider = ({ children }) => {
         addExpenseOptimistic,
         deleteExpenseOptimistic,
         setBudgetOptimistic,
+        resetBudgetOptimistic,
       }}
     >
       {children}

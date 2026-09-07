@@ -25,6 +25,20 @@ const monthlyBudgetSchema = new mongoose.Schema(
       required: true,
       min: [0, 'Budget must be a non-negative number'],
     },
+    categoryBudgets: [
+      {
+        category: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        amount: {
+          type: Number,
+          required: true,
+          min: [0, 'Category budget must be non-negative'],
+        },
+      },
+    ],
   },
   {
     timestamps: true,

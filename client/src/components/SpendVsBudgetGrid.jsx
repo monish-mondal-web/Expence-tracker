@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { formatCurrency } from '../utils/currency';
 import { useApp } from '../context/AppContext';
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const PROGRESS_COLORS = [
   '#EA580C', // Orange
