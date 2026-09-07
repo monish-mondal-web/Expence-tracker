@@ -15,12 +15,21 @@ export const SetBudgetModal = () => {
     categories,
     showToast,
     setBudgetOptimistic,
+    triggerRefresh,
+    loadCategories,
   } = useApp();
 
   const [categoryBudgetsMap, setCategoryBudgetsMap] = useState({});
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Inline custom space creation
+  const [showAddSpaceInline, setShowAddSpaceInline] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState('');
+  const [newSpaceIcon, setNewSpaceIcon] = useState('Plane');
+  const [newSpaceColor, setNewSpaceColor] = useState('#06B6D4');
+  const [isCreatingSpace, setIsCreatingSpace] = useState(false);
 
   // When modal opens, load existing budget for selected month if available
   useEffect(() => {
@@ -105,6 +114,39 @@ export const SetBudgetModal = () => {
       'Gym': prev['Gym'] || 1500,
       'Travel': prev['Travel'] || 1000,
     }));
+  };
+
+  const handleCreateCustomSpace = async () => {
+    const trimmed = newSpaceName.trim();
+    if (!trimmed) {
+      showToast('Please enter a space name', 'error');
+      return;
+    }
+
+    setIsCreatingSpace(true);
+    try {
+      const res = await api.createCategory({
+        name: trimmed,
+        icon: newSpaceIcon,
+        color: newSpaceColor,
+      });
+
+      if (res.success) {
+        showToast(`Space "${trimmed}" created & added to budget!`);
+        setCategoryBudgetsMap((prev) => ({
+          ...prev,
+          [trimmed]: prev[trimmed] || 1000,
+        }));
+        setNewSpaceName('');
+        setShowAddSpaceInline(false);
+        triggerRefresh();
+        if (loadCategories) loadCategories();
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to create space', 'error');
+    } finally {
+      setIsCreatingSpace(false);
+    }
   };
 
   // Calculate live sum of all category budgets
@@ -300,40 +342,237 @@ export const SetBudgetModal = () => {
                     }
                   });
 
-                  return availableSpaces.map((cat) => {
-                    const isPicked = categoryBudgetsMap[cat.name] !== undefined;
-                    return (
+                  return (
+                    <>
+                      {availableSpaces.map((cat) => {
+                        const isPicked = categoryBudgetsMap[cat.name] !== undefined;
+                        return (
+                          <button
+                            key={cat._id || cat.name}
+                            type="button"
+                            onClick={() => handleToggleCategory(cat.name)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 10px',
+                              borderRadius: '20px',
+                              border: isPicked ? '1.5px solid #10B981' : '1px solid #E2E8F0',
+                              background: isPicked ? '#ECFDF5' : '#FFFFFF',
+                              color: isPicked ? '#065F46' : '#334155',
+                              fontSize: '0.78rem',
+                              fontWeight: isPicked ? 700 : 500,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <CategoryIcon name={cat.icon} size={14} color={isPicked ? '#059669' : (cat.color || '#64748B')} />
+                            <span>{cat.name}</span>
+                            {isPicked ? (
+                              <Check size={13} color="#059669" strokeWidth={3} />
+                            ) : (
+                              <Plus size={12} color="#94A3B8" />
+                            )}
+                          </button>
+                        );
+                      })}
+
+                      {/* Add Custom Space Button */}
                       <button
-                        key={cat._id || cat.name}
                         type="button"
-                        onClick={() => handleToggleCategory(cat.name)}
+                        onClick={() => setShowAddSpaceInline((prev) => !prev)}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          padding: '6px 10px',
+                          padding: '6px 12px',
                           borderRadius: '20px',
-                          border: isPicked ? '1.5px solid #10B981' : '1px solid #E2E8F0',
-                          background: isPicked ? '#ECFDF5' : '#FFFFFF',
-                          color: isPicked ? '#065F46' : '#334155',
+                          border: showAddSpaceInline ? '1.5px solid #059669' : '1.5px dashed #059669',
+                          background: showAddSpaceInline ? '#ECFDF5' : '#F0FDF4',
+                          color: '#059669',
                           fontSize: '0.78rem',
-                          fontWeight: isPicked ? 700 : 500,
+                          fontWeight: 700,
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
                         }}
+                        title="Add Custom Space"
                       >
-                        <CategoryIcon name={cat.icon} size={14} color={isPicked ? '#059669' : (cat.color || '#64748B')} />
-                        <span>{cat.name}</span>
-                        {isPicked ? (
-                          <Check size={13} color="#059669" strokeWidth={3} />
-                        ) : (
-                          <Plus size={12} color="#94A3B8" />
-                        )}
+                        <Plus size={13} color="#059669" strokeWidth={2.6} />
+                        <span>Add Custom Space</span>
                       </button>
-                    );
-                  });
+                    </>
+                  );
                 })()}
               </div>
+
+              {/* Inline Custom Space Creator Panel */}
+              {showAddSpaceInline && (
+                <div
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.85rem',
+                    borderRadius: '12px',
+                    background: '#F8FAFC',
+                    border: '1.5px solid #E2E8F0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.65rem',
+                    animation: 'fadeIn 0.2s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Sparkles size={14} color="#059669" />
+                      Create Custom Space
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddSpaceInline(false);
+                        setNewSpaceName('');
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94A3B8',
+                        cursor: 'pointer',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+
+                  {/* Space name input */}
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Space name (e.g. Tour, Subscriptions, Pet Care)"
+                      className="form-input"
+                      value={newSpaceName}
+                      onChange={(e) => setNewSpaceName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleCreateCustomSpace();
+                        }
+                      }}
+                      style={{
+                        fontSize: '0.85rem',
+                        padding: '0.5rem 0.75rem',
+                        height: '38px',
+                        background: '#FFFFFF',
+                      }}
+                      maxLength={35}
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Choose Icon */}
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                      Choose Icon
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.35rem', overflowX: 'auto', paddingBottom: '3px' }}>
+                      {['Plane', 'HeartPulse', 'Home', 'Car', 'Dumbbell', 'ShoppingBag', 'Zap', 'Coffee', 'Film', 'BookOpen', 'Sparkles', 'Utensils'].map((iconName) => {
+                        const isSelected = newSpaceIcon === iconName;
+                        return (
+                          <button
+                            key={iconName}
+                            type="button"
+                            onClick={() => setNewSpaceIcon(iconName)}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
+                              border: isSelected ? `2px solid ${newSpaceColor}` : '1px solid #E2E8F0',
+                              background: isSelected ? `${newSpaceColor}20` : '#FFFFFF',
+                              color: isSelected ? newSpaceColor : '#64748B',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <CategoryIcon name={iconName} size={15} color={isSelected ? newSpaceColor : '#64748B'} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Choose Color */}
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                      Choose Color
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                      {['#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#64748B'].map((c) => {
+                        const isSelected = newSpaceColor === c;
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => setNewSpaceColor(c)}
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              background: c,
+                              border: isSelected ? '2.5px solid #0F172A' : '2px solid #FFFFFF',
+                              cursor: 'pointer',
+                              outline: isSelected ? '2px solid rgba(15, 23, 42, 0.3)' : 'none',
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.45rem', marginTop: '0.2rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddSpaceInline(false);
+                        setNewSpaceName('');
+                      }}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: '8px',
+                        padding: '5px 12px',
+                        fontSize: '0.76rem',
+                        color: '#475569',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateCustomSpace}
+                      disabled={isCreatingSpace || !newSpaceName.trim()}
+                      style={{
+                        background: '#059669',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '5px 14px',
+                        fontSize: '0.76rem',
+                        fontWeight: 700,
+                        cursor: isCreatingSpace || !newSpaceName.trim() ? 'not-allowed' : 'pointer',
+                        opacity: isCreatingSpace || !newSpaceName.trim() ? 0.6 : 1,
+                      }}
+                    >
+                      {isCreatingSpace ? 'Creating...' : 'Create & Select'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Allocated Category Cards */}
