@@ -1,12 +1,25 @@
 import React from 'react';
 import { formatCurrency } from '../utils/currency';
 import { formatTime, getRelativeDateLabel } from '../utils/date';
+import { useApp } from '../context/AppContext';
 import { CategoryIcon } from './CategoryIcon';
 import { ChevronRight, PlusCircle, ShoppingBag, Trash2 } from 'lucide-react';
 
 // Pastel category color & background mappings
 const getCategoryStyle = (categoryName = '') => {
   const lower = categoryName.toLowerCase();
+  if (lower.includes('gym') || lower.includes('fitness') || lower.includes('workout')) {
+    return { bg: '#FEF3C7', color: '#D97706', defaultIcon: 'Dumbbell' }; // Amber
+  }
+  if (lower.includes('tour') || lower.includes('trip') || lower.includes('flight') || lower.includes('travel')) {
+    return { bg: '#E0F2FE', color: '#0284C7', defaultIcon: 'Plane' }; // Sky
+  }
+  if (lower.includes('rent') || lower.includes('room') || lower.includes('flat')) {
+    return { bg: '#EEF2FF', color: '#4F46E5', defaultIcon: 'Home' }; // Indigo
+  }
+  if (lower.includes('health') || lower.includes('medic') || lower.includes('doctor')) {
+    return { bg: '#FEE2E2', color: '#DC2626', defaultIcon: 'HeartPulse' }; // Red
+  }
   if (lower.includes('snack') || lower.includes('cookie') || lower.includes('sweet') || lower.includes('dessert')) {
     return { bg: '#FCE7F3', color: '#DB2777', defaultIcon: 'Cookie' }; // Pink
   }
@@ -32,8 +45,11 @@ export const RecentFoodExpenses = ({
   onDeleteExpense,
   onAddExpense,
 }) => {
+  const { activeSpace } = useApp();
   // 100% Dynamic: take up to 5 most recent expenses directly from data
   const recentItems = expenses.slice(0, 5);
+
+  const title = activeSpace && activeSpace !== 'All' ? `Recent ${activeSpace} Expenses` : 'Recent Expenses';
 
   // Dynamic header tag based on actual latest expense date (never hardcoded)
   const dateHeader =
@@ -45,7 +61,7 @@ export const RecentFoodExpenses = ({
     <div className="recent-expenses-card">
       {/* Header */}
       <div className="recent-expenses-header">
-        <h3 className="recent-expenses-title">Recent Food Expenses</h3>
+        <h3 className="recent-expenses-title">{title}</h3>
         {onSeeAll && (
           <button type="button" className="see-all-btn" onClick={onSeeAll}>
             <span>See All</span>

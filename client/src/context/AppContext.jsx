@@ -73,6 +73,25 @@ export const AppProvider = ({ children }) => {
   const [dashboardData, setDashboardData] = useState(null);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
 
+  // Spaces management
+  const [activeSpace, setActiveSpaceState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('pk_active_space') || 'Food & Dining';
+    }
+    return 'Food & Dining';
+  });
+
+  const setActiveSpace = useCallback((space) => {
+    setActiveSpaceState(space);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pk_active_space', space);
+    }
+  }, []);
+
+  const [isAddSpaceOpen, setIsAddSpaceOpen] = useState(false);
+  const openAddSpace = () => setIsAddSpaceOpen(true);
+  const closeAddSpace = () => setIsAddSpaceOpen(false);
+
   // Modals
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
@@ -106,7 +125,7 @@ export const AppProvider = ({ children }) => {
   // Fetch dashboard data
   const loadDashboard = useCallback(async () => {
     try {
-      const res = await api.getDashboard(currentMonth, currentYear, todayDate);
+      const res = await api.getDashboard(currentMonth, currentYear, todayDate, activeSpace);
       if (res.success) {
         setDashboardData(res.data);
       }
@@ -115,7 +134,7 @@ export const AppProvider = ({ children }) => {
     } finally {
       setIsDashboardLoading(false);
     }
-  }, [currentMonth, currentYear, todayDate]);
+  }, [currentMonth, currentYear, todayDate, activeSpace]);
 
   useEffect(() => {
     loadDashboard();
@@ -425,6 +444,11 @@ export const AppProvider = ({ children }) => {
         closeConfirm,
         toasts,
         showToast,
+        activeSpace,
+        setActiveSpace,
+        isAddSpaceOpen,
+        openAddSpace,
+        closeAddSpace,
         prevMonth,
         nextMonth,
         addExpenseOptimistic,

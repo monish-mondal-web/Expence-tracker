@@ -22,7 +22,7 @@ export const MainBudgetCard = ({
   isExpanded: controlledExpanded,
   onToggleExpand,
 }) => {
-  const { requestConfirm, resetBudgetOptimistic } = useApp();
+  const { requestConfirm, resetBudgetOptimistic, activeSpace } = useApp();
   const [internalExpanded, setInternalExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -52,22 +52,41 @@ export const MainBudgetCard = ({
     }
   };
 
-  const budget = data?.monthlyBudget || 0;
-  const hasBudget = data?.hasBudget && budget > 0;
+  // Determine if viewing a specific space or all spaces
+  const isSpaceMode = activeSpace && activeSpace !== 'All';
+  const spaceObj = isSpaceMode
+    ? (data?.spaces?.find((s) => s.name.toLowerCase() === activeSpace.toLowerCase()) || data?.activeSpaceData)
+    : null;
+
+  const cardTitle = isSpaceMode ? `${activeSpace} Budget` : 'Monthly Budget';
+  const cardSubtitle = isSpaceMode
+    ? 'Dedicated Space'
+    : (data?.categoryBreakdown?.filter((c) => c.budget > 0).length > 0
+        ? `${data.categoryBreakdown.filter((c) => c.budget > 0).length} Categories Allocated`
+        : 'Overview across all spaces');
+  const cardIcon = isSpaceMode ? (spaceObj?.icon || 'Utensils') : 'ArrowUpRight';
+  const cardColor = isSpaceMode ? (spaceObj?.color || '#34D399') : '#34D399';
+
+  const budget = isSpaceMode ? (spaceObj?.monthlyBudget || 0) : (data?.monthlyBudget || 0);
+  const hasBudget = isSpaceMode ? (spaceObj?.hasBudget && budget > 0) : (data?.hasBudget && budget > 0);
   const categoryBreakdown = data?.categoryBreakdown || [];
 
-  const totalSpent = data?.totalSpent || 0;
-  const remainingBudget = data?.remainingBudget || 0;
+  const totalSpent = isSpaceMode ? (spaceObj?.totalSpent || 0) : (data?.totalSpent || 0);
+  const remainingBudget = isSpaceMode ? (spaceObj?.remainingBudget || 0) : (data?.remainingBudget || 0);
   const remainingDays = data?.remainingDays !== undefined ? data.remainingDays : 0;
-  const dynamicSafeDailyBudget = data?.dynamicSafeDailyBudget || 0;
-  const safeDailyBudget = data?.safeDailyBudget || 0;
+  const dynamicSafeDailyBudget = isSpaceMode
+    ? (spaceObj?.dynamicSafeDailyBudget || spaceObj?.safeDailyBudget || 0)
+    : (data?.dynamicSafeDailyBudget || 0);
+  const safeDailyBudget = isSpaceMode
+    ? (spaceObj?.safeDailyBudget || 0)
+    : (data?.safeDailyBudget || 0);
   const effectiveSafeDaily = dynamicSafeDailyBudget || safeDailyBudget || 0;
-  const todaySpent = data?.todaySpent || 0;
-  const smartMessage = data?.smartMessage || '';
+  const todaySpent = isSpaceMode ? (spaceObj?.todaySpent || 0) : (data?.todaySpent || 0);
+  const smartMessage = isSpaceMode ? (spaceObj?.smartMessage || '') : (data?.smartMessage || '');
 
   // Remaining in today's daily limit (negative if over limit)
   const safeRemainingToday =
-    data?.safeRemainingToday !== undefined
+    data?.safeRemainingToday !== undefined && !isSpaceMode
       ? data.safeRemainingToday
       : Math.round((effectiveSafeDaily - todaySpent) * 100) / 100;
 
@@ -79,8 +98,9 @@ export const MainBudgetCard = ({
   const daysElapsed = Math.max(1, Math.min(now.getDate(), daysInMonth));
 
   // Dynamic average spend per day (distinct metric)
-  const yourAverage =
-    data?.averageDailySpend || (daysElapsed > 0 ? Math.round(totalSpent / daysElapsed) : 0);
+  const yourAverage = isSpaceMode
+    ? (spaceObj?.averageDailySpend || (daysElapsed > 0 ? Math.round(totalSpent / daysElapsed) : 0))
+    : (data?.averageDailySpend || (daysElapsed > 0 ? Math.round(totalSpent / daysElapsed) : 0));
 
   // Dynamic percentages
   const spentPercent = budget > 0 ? Math.min(100, Math.round((totalSpent / budget) * 100)) : 0;
@@ -130,14 +150,29 @@ export const MainBudgetCard = ({
     return (
       <div className="fintech-budget-card empty">
         <div style={{ textAlign: 'center', padding: '1.75rem 1rem' }}>
-          <div className="budget-empty-icon">
-            <Utensils size={28} color="#34D399" />
+          <div
+            className="budget-empty-icon"
+            style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '16px',
+              background: `${cardColor}22`,
+              border: `1px solid ${cardColor}40`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+            }}
+          >
+            <CategoryIcon name={cardIcon} size={28} color={cardColor} />
           </div>
-          <h3 style={{ color: '#FFFFFF', fontSize: '1.25rem', fontWeight: 800, margin: '0.6rem 0 0.3rem' }}>
-            Set Monthly Budget
+          <h3 style={{ color: '#FFFFFF', fontSize: '1.25rem', fontWeight: 800, margin: '0.8rem 0 0.3rem' }}>
+            Set {cardTitle}
           </h3>
           <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-            Set your monthly budget for categories (Food, Travel, Tour, Room Rent, Health, Gym) to activate live pace tracking.
+            {isSpaceMode
+              ? `Set a monthly budget for ${activeSpace} to activate live daily safe limits and pace tracking.`
+              : 'Set your monthly budget for categories (Food, Travel, Room Rent, Gym) to activate live pace tracking.'}
           </p>
           <button
             type="button"
@@ -146,7 +181,7 @@ export const MainBudgetCard = ({
             style={{ margin: '0 auto', display: 'inline-flex', padding: '0.6rem 1.4rem' }}
           >
             <Pencil size={13} />
-            <span>Set Monthly Budget</span>
+            <span>Set {isSpaceMode ? `${activeSpace} Budget` : 'Monthly Budget'}</span>
           </button>
         </div>
       </div>
@@ -163,16 +198,22 @@ export const MainBudgetCard = ({
       {/* Top Header Row */}
       <div className="budget-card-header">
         <div className="budget-title-group">
-          <div className="budget-icon-square">
-            <ArrowUpRight size={22} color="#34D399" strokeWidth={2.4} />
+          <div
+            className="budget-icon-square"
+            style={{
+              background: `${cardColor}22`,
+              border: `1px solid ${cardColor}44`,
+            }}
+          >
+            {isSpaceMode ? (
+              <CategoryIcon name={cardIcon} size={20} color={cardColor} />
+            ) : (
+              <ArrowUpRight size={22} color="#34D399" strokeWidth={2.4} />
+            )}
           </div>
           <div>
-            <div className="budget-card-title">Monthly Budget</div>
-            <div className="budget-card-subtitle">
-              {categoryBreakdown.filter((c) => c.budget > 0).length > 0
-                ? `${categoryBreakdown.filter((c) => c.budget > 0).length} Categories Allocated`
-                : 'Your monthly budget'}
-            </div>
+            <div className="budget-card-title">{cardTitle}</div>
+            <div className="budget-card-subtitle">{cardSubtitle}</div>
           </div>
         </div>
 

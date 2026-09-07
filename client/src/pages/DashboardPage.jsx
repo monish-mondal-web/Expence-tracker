@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { SpaceSwitcher } from '../components/SpaceSwitcher';
 import { MainBudgetCard } from '../components/MainBudgetCard';
 import { QuickActions } from '../components/QuickActions';
 import { RecentFoodExpenses } from '../components/RecentFoodExpenses';
@@ -48,7 +49,10 @@ export const DashboardPage = () => {
 
   return (
     <div className="dashboard-content-flow">
-      {/* 1. Main Food Budget Card with live Dynamic Safe Limit Breakdown */}
+      {/* 0. Top Spaces Switcher (Food, Travel, Room Rent, Gym, Custom Spaces) */}
+      <SpaceSwitcher />
+
+      {/* 1. Main Space Budget Card with live Dynamic Safe Limit Breakdown */}
       <MainBudgetCard
         data={dashboardData}
         onSetBudget={openSetBudget}

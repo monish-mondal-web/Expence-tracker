@@ -18,6 +18,7 @@ export const AddExpenseModal = () => {
     showToast,
     addExpenseOptimistic,
     todayDate,
+    activeSpace,
   } = useApp();
 
   const [amount, setAmount] = useState('');
@@ -36,12 +37,14 @@ export const AddExpenseModal = () => {
         setNote(editingExpense.note || '');
       } else {
         setAmount('');
-        setDate(preselectedDate || todayDate);
-        setCategory(categories[0]?.name || 'Lunch');
+        const defaultCat = (activeSpace && activeSpace !== 'All' && categories.some((c) => c.name === activeSpace))
+          ? activeSpace
+          : (categories[0]?.name || 'Food & Dining');
+        setCategory(defaultCat);
         setNote('');
       }
     }
-  }, [isAddExpenseOpen, editingExpense, preselectedDate, todayDate, categories]);
+  }, [isAddExpenseOpen, editingExpense, preselectedDate, todayDate, categories, activeSpace]);
 
   if (!isAddExpenseOpen) return null;
 

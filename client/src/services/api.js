@@ -65,11 +65,12 @@ export const api = {
     }),
 
   // Dashboard
-  getDashboard: (month, year, today) => {
+  getDashboard: (month, year, today, space) => {
     const params = new URLSearchParams();
     if (month) params.append('month', month);
     if (year) params.append('year', year);
     if (today) params.append('today', today);
+    if (space) params.append('space', space);
     return request(`/dashboard?${params.toString()}`);
   },
 

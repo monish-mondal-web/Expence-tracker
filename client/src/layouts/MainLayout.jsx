@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatMonthYear } from '../utils/date';
 import { AddExpenseModal } from '../components/AddExpenseModal';
 import { SetBudgetModal } from '../components/SetBudgetModal';
+import { AddSpaceModal } from '../components/AddSpaceModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { AuthModal } from '../components/AuthModal';
 import { Toast } from '../components/Toast';
@@ -200,6 +201,7 @@ export const MainLayout = ({ children }) => {
       {/* Global Modals & Notifications */}
       <AddExpenseModal />
       <SetBudgetModal />
+      <AddSpaceModal />
       <ConfirmModal />
       <AuthModal />
       <Toast />

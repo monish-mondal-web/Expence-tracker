@@ -53,6 +53,35 @@ exports.createCategory = async (req, res, next) => {
       isDefault: false,
     });
 
+    // Optionally set initial budget for this category space
+    if (req.body.initialBudget && Number(req.body.initialBudget) > 0) {
+      const MonthlyBudget = require('../models/MonthlyBudget');
+      const now = new Date();
+      const month = req.body.month || now.getMonth() + 1;
+      const year = req.body.year || now.getFullYear();
+      const budgetAmount = Number(req.body.initialBudget);
+
+      let budgetDoc = await MonthlyBudget.findOne({ userId: user._id, month, year });
+      if (!budgetDoc) {
+        await MonthlyBudget.create({
+          userId: user._id,
+          month,
+          year,
+          budgetAmount,
+          categoryBudgets: [{ category: trimmedName, amount: budgetAmount }],
+        });
+      } else {
+        const existingIdx = budgetDoc.categoryBudgets.findIndex((cb) => cb.category === trimmedName);
+        if (existingIdx >= 0) {
+          budgetDoc.categoryBudgets[existingIdx].amount = budgetAmount;
+        } else {
+          budgetDoc.categoryBudgets.push({ category: trimmedName, amount: budgetAmount });
+        }
+        budgetDoc.budgetAmount = budgetDoc.categoryBudgets.reduce((sum, c) => sum + (c.amount || 0), 0);
+        await budgetDoc.save();
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Category created successfully',

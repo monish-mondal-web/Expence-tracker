@@ -84,6 +84,12 @@ exports.getDashboardData = async (req, res, next) => {
       categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
     });
 
+    const todayCategoryTotals = {};
+    todayExpenses.forEach((e) => {
+      const cat = e.category || 'Other';
+      todayCategoryTotals[cat] = (todayCategoryTotals[cat] || 0) + e.amount;
+    });
+
     // Categories metadata for icons and colors
     const allCategoriesMeta = await Category.find({
       $or: [{ userId: user._id }, { userId: null }],
@@ -125,8 +131,69 @@ exports.getDashboardData = async (req, res, next) => {
       };
     }).sort((a, b) => (b.budget || b.spent) - (a.budget || a.spent));
 
-    // 7. Recent expenses for quick dashboard list (latest 8)
-    const recentExpenses = expenses.slice(0, 8);
+    // 7. Multi-Space Summary with individual metrics per space
+    const allKnownSpaces = new Map();
+    allCategoriesMeta.forEach((c) => {
+      allKnownSpaces.set(c.name, {
+        name: c.name,
+        icon: c.icon || 'Utensils',
+        color: c.color || '#10B981',
+      });
+    });
+
+    allCategoryNames.forEach((catName) => {
+      if (!allKnownSpaces.has(catName)) {
+        allKnownSpaces.set(catName, {
+          name: catName,
+          icon: metaMap[catName]?.icon || 'Utensils',
+          color: metaMap[catName]?.color || '#64748B',
+        });
+      }
+    });
+
+    const spaces = Array.from(allKnownSpaces.values()).map((catMeta) => {
+      const catName = catMeta.name;
+      const bAmount = Math.round((budgetMap[catName] || 0) * 100) / 100;
+      const sAmount = Math.round((categoryTotals[catName] || 0) * 100) / 100;
+      const tSpent = Math.round((todayCategoryTotals[catName] || 0) * 100) / 100;
+      const sDays = new Set(
+        expenses.filter((e) => (e.category || 'Other') === catName).map((e) => new Date(e.date).toISOString().slice(0, 10))
+      ).size;
+
+      const spaceMetrics = calculateMetrics({
+        monthlyBudgetAmount: bAmount,
+        totalSpent: sAmount,
+        todaySpent: tSpent,
+        elapsedDays,
+        daysTracked: sDays,
+      });
+
+      return {
+        name: catName,
+        icon: catMeta.icon,
+        color: catMeta.color,
+        hasBudget: bAmount > 0,
+        monthlyBudget: bAmount,
+        totalSpent: sAmount,
+        todaySpent: tSpent,
+        remainingBudget: bAmount > 0 ? Math.round((bAmount - sAmount) * 100) / 100 : 0,
+        count: categoryCounts[catName] || 0,
+        ...spaceMetrics,
+      };
+    });
+
+    // 8. Space Filtering
+    const qSpace = req.query.space;
+    let activeSpaceData = null;
+    let filteredRecentExpenses = expenses.slice(0, 8);
+
+    if (qSpace && qSpace !== 'All') {
+      const activeSpaceObj = spaces.find((s) => s.name.toLowerCase() === qSpace.toLowerCase());
+      if (activeSpaceObj) {
+        activeSpaceData = activeSpaceObj;
+        filteredRecentExpenses = expenses.filter((e) => (e.category || 'Other').toLowerCase() === qSpace.toLowerCase()).slice(0, 8);
+      }
+    }
 
     res.json({
       success: true,
@@ -138,7 +205,10 @@ exports.getDashboardData = async (req, res, next) => {
         ...metrics,
         categoryBudgets,
         categoryBreakdown,
-        recentExpenses,
+        recentExpenses: filteredRecentExpenses,
+        spaces,
+        activeSpace: qSpace || null,
+        activeSpaceData,
       },
     });
   } catch (error) {
