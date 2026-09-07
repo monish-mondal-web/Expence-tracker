@@ -179,9 +179,9 @@ export const AnalyticsPage = () => {
       {/* Category Breakdown (Donut Chart & Percentages) */}
       <div className="transactions-section">
         <div className="section-header">
-          <h2>Food Category Breakdown</h2>
+          <h2>Category Breakdown</h2>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            Where your food budget goes
+            Spending across spaces & activities
           </span>
         </div>
         <CategoryBreakdown breakdown={categoryBreakdown} totalSpent={totalSpent} />

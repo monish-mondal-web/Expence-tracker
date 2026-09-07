@@ -82,29 +82,49 @@ exports.getAnalytics = async (req, res, next) => {
       });
     }
 
-    // 6. Category Breakdown
-    const categoryTotals = {};
-    const categoryCounts = {};
-    expenses.forEach((e) => {
-      const cat = e.category || 'Other';
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + e.amount;
-      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-    });
-
-    // Load category colors/icons
-    const categoriesMeta = await Category.find({
-      $or: [{ userId: user._id }, { userId: null }],
-    });
-    const categoryMetaMap = {};
-    categoriesMeta.forEach((c) => {
-      categoryMetaMap[c.name] = { color: c.color, icon: c.icon };
-    });
-
-    // Distinct palette fallback if category not matched
-    const fallbackColors = [
-      '#10B981', '#6366F1', '#F59E0B', '#EC4899', '#3B82F6',
-      '#EF4444', '#8B5CF6', '#14B8A6', '#F97316', '#64748B'
+    // 6. Space Hierarchy and Category Helpers
+    const FOOD_SUB_CATEGORIES = [
+      'breakfast', 'lunch', 'dinner', 'snacks', 'groceries', 'fruits',
+      'vegetables', 'meat / fish', 'meat', 'fish', 'drinks', 'coffee', 'tea'
     ];
+
+    const isFoodSubCategory = (catName = '') => {
+      const lower = (catName || '').toLowerCase().trim();
+      return lower === 'food & dining' || lower === 'food' || FOOD_SUB_CATEGORIES.some((f) => lower.includes(f));
+    };
+
+    const isCategoryInSpace = (catName = '', spaceName = '') => {
+      const cat = (catName || '').toLowerCase().trim();
+      const space = (spaceName || '').toLowerCase().trim();
+
+      if (cat === space) return true;
+
+      if (space === 'food & dining' || space === 'food') {
+        return isFoodSubCategory(cat);
+      }
+      if (space === 'room rent') {
+        return cat.includes('rent') || cat.includes('flat') || cat.includes('maintenance') || cat.includes('water bill') || cat.includes('electricity bill') || cat.includes('maid');
+      }
+      if (space === 'gym') {
+        return cat.includes('gym') || cat.includes('fitness') || cat.includes('workout') || cat.includes('trainer') || cat.includes('supplement');
+      }
+      if (space === 'travel') {
+        return cat.includes('travel') || cat.includes('commute') || cat.includes('petrol') || cat.includes('fuel') || cat.includes('metro') || cat.includes('cab') || cat.includes('auto') || cat.includes('bus') || cat.includes('flight');
+      }
+      if (space === 'tour') {
+        return cat.includes('tour') || cat.includes('sightseeing') || cat.includes('hotel') || cat.includes('stay');
+      }
+      if (space === 'health') {
+        return cat.includes('health') || cat.includes('medicine') || cat.includes('doctor') || cat.includes('clinic') || cat.includes('hospital') || cat.includes('test');
+      }
+      if (space === 'shopping') {
+        return cat.includes('shopping') || cat.includes('cloth') || cat.includes('gadget') || cat.includes('footwear') || cat.includes('beauty');
+      }
+      if (space === 'bills & utilities' || space === 'bills') {
+        return cat.includes('bill') || cat.includes('recharge') || cat.includes('wifi') || cat.includes('gas') || cat.includes('dth');
+      }
+      return false;
+    };
 
     const budgetMap = {};
     if (budgetDoc && Array.isArray(budgetDoc.categoryBudgets)) {
@@ -113,27 +133,133 @@ exports.getAnalytics = async (req, res, next) => {
       });
     }
 
-    const allCatNames = new Set([...Object.keys(categoryTotals), ...Object.keys(budgetMap)]);
+    let foodSubSum = 0;
+    Object.entries(budgetMap).forEach(([k, v]) => {
+      if (isFoodSubCategory(k)) foodSubSum += v;
+    });
+    const foodBudgetAmount = budgetMap['Food & Dining'] || budgetMap['Food'] || foodSubSum || (
+      monthlyBudgetAmount > 0 && !budgetMap['Room Rent'] && !budgetMap['Gym'] ? monthlyBudgetAmount : 0
+    );
 
-    const categoryBreakdown = Array.from(allCatNames)
-      .map((catName, idx) => {
-        const catSpent = Math.round((categoryTotals[catName] || 0) * 100) / 100;
-        const catBudget = Math.round((budgetMap[catName] || 0) * 100) / 100;
-        const percentage = catBudget > 0
-          ? Math.min(100, Math.round((catSpent / catBudget) * 100))
-          : (totalSpent > 0 ? Math.round((catSpent / totalSpent) * 1000) / 10 : 0);
-        const meta = categoryMetaMap[catName] || {};
+    // Food Expenses aggregated
+    const foodExpenses = expenses.filter((e) => {
+      if (e.space && (e.space.toLowerCase() === 'food & dining' || e.space.toLowerCase() === 'food')) return true;
+      return isFoodSubCategory(e.category || 'Other');
+    });
+
+    const defaultTopSpaces = [
+      {
+        name: 'Food & Dining',
+        icon: 'Utensils',
+        color: '#10B981',
+        budget: foodBudgetAmount,
+      },
+      {
+        name: 'Room Rent',
+        icon: 'Home',
+        color: '#6366F1',
+        budget: budgetMap['Room Rent'] || 0,
+      },
+      {
+        name: 'Gym',
+        icon: 'Dumbbell',
+        color: '#F59E0B',
+        budget: budgetMap['Gym'] || 0,
+      },
+      {
+        name: 'Travel',
+        icon: 'Car',
+        color: '#3B82F6',
+        budget: budgetMap['Travel'] || 0,
+      },
+    ];
+
+    const categoriesMeta = await Category.find({
+      $or: [{ userId: user._id }, { userId: null }],
+    });
+    const categoryMetaMap = {};
+    categoriesMeta.forEach((c) => {
+      categoryMetaMap[c.name] = { color: c.color, icon: c.icon };
+    });
+
+    const knownTopNames = new Set(defaultTopSpaces.map((s) => s.name.toLowerCase()));
+    const customSpaces = [];
+    categoriesMeta.forEach((c) => {
+      const lower = c.name.toLowerCase().trim();
+      if (!isFoodSubCategory(lower) && !knownTopNames.has(lower)) {
+        customSpaces.push({
+          name: c.name,
+          icon: c.icon || 'Sparkles',
+          color: c.color || '#EC4899',
+          budget: budgetMap[c.name] || 0,
+        });
+        knownTopNames.add(lower);
+      }
+    });
+
+    Object.keys(budgetMap).forEach((bName) => {
+      const lower = bName.toLowerCase().trim();
+      if (!isFoodSubCategory(lower) && !knownTopNames.has(lower)) {
+        customSpaces.push({
+          name: bName,
+          icon: 'Sparkles',
+          color: '#8B5CF6',
+          budget: budgetMap[bName] || 0,
+        });
+        knownTopNames.add(lower);
+      }
+    });
+
+    const allSpaces = [...defaultTopSpaces, ...customSpaces];
+
+    const categoryBreakdown = allSpaces.map((spaceItem) => {
+      const sExpenses = spaceItem.name === 'Food & Dining'
+        ? foodExpenses
+        : expenses.filter((e) => {
+            if (e.space && e.space.toLowerCase() === spaceItem.name.toLowerCase()) return true;
+            return isCategoryInSpace(e.category || 'Other', spaceItem.name);
+          });
+
+      const sSpent = Math.round(sExpenses.reduce((sum, e) => sum + e.amount, 0) * 100) / 100;
+      const sBudget = Math.round((spaceItem.budget || 0) * 100) / 100;
+
+      // Group nested sub-categories
+      const subTotals = {};
+      const subCounts = {};
+      sExpenses.forEach((e) => {
+        const subCat = e.category || spaceItem.name;
+        subTotals[subCat] = (subTotals[subCat] || 0) + e.amount;
+        subCounts[subCat] = (subCounts[subCat] || 0) + 1;
+      });
+
+      const subCategories = Object.entries(subTotals).map(([subCatName, amt]) => {
+        const subSpent = Math.round(amt * 100) / 100;
+        const subMeta = categoryMetaMap[subCatName] || {};
         return {
-          category: catName,
-          total: catSpent,
-          budget: catBudget,
-          remaining: catBudget > 0 ? Math.round((catBudget - catSpent) * 100) / 100 : null,
-          percentage,
-          count: categoryCounts[catName] || 0,
-          color: meta.color || fallbackColors[idx % fallbackColors.length],
-          icon: meta.icon || 'Utensils',
+          category: subCatName,
+          total: subSpent,
+          count: subCounts[subCatName] || 0,
+          color: subMeta.color || spaceItem.color,
+          icon: subMeta.icon || spaceItem.icon,
         };
-      })
+      }).sort((a, b) => b.total - a.total);
+
+      const percentage = totalSpent > 0 ? Math.round((sSpent / totalSpent) * 1000) / 10 : 0;
+      const budgetPercentage = sBudget > 0 ? Math.min(100, Math.round((sSpent / sBudget) * 100)) : 0;
+
+      return {
+        category: spaceItem.name,
+        total: sSpent,
+        budget: sBudget,
+        remaining: sBudget > 0 ? Math.round((sBudget - sSpent) * 100) / 100 : null,
+        percentage,
+        budgetPercentage,
+        count: sExpenses.length,
+        color: spaceItem.color,
+        icon: spaceItem.icon,
+        subCategories,
+      };
+    }).filter((item) => item.budget > 0 || item.total > 0)
       .sort((a, b) => (b.budget || b.total) - (a.budget || a.total));
 
     // 7. Peak day

@@ -819,7 +819,13 @@ export const MainBudgetCard = ({
       </div>
 
       {/* Clickable Expand / Collapse Indicator - Positioned at the bottom of the card */}
-      <div className="budget-expand-hint" onClick={toggleExpanded}>
+      <div
+        className="budget-expand-hint"
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleExpanded();
+        }}
+      >
         <span>{isExpanded ? 'Hide detailed breakdown' : 'Tap for daily safe limit & category budgets'}</span>
         <ChevronDown
           size={14}
