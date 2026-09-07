@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { SpaceSwitcher } from '../components/SpaceSwitcher';
 import { MainBudgetCard } from '../components/MainBudgetCard';
 import { QuickActions } from '../components/QuickActions';
@@ -20,82 +21,87 @@ export const DashboardPage = () => {
     setActiveTab,
   } = useApp();
 
+  const { user } = useAuth();
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
-  const hasPromptedBudgetRef = useRef(false);
+  const promptedUserKeyRef = useRef(null);
 
   // Budget prompt rules:
   // 1. If 0 spaces set: prompt on open/refresh every time
-  // 2. If 1 space set: prompt daily one time
-  // 3. If 2 spaces set: prompt every 2 days (48 hours interval)
+  // 2. If 1 space set: prompt daily one time (user-scoped)
+  // 3. If 2 spaces set: prompt every 2 days (48 hours interval, user-scoped)
   // 4. If 3 or more spaces set: do not prompt
   useEffect(() => {
-    if (isDashboardLoading || !dashboardData || hasPromptedBudgetRef.current) return;
+    if (isDashboardLoading || !dashboardData) return;
 
-    const serverSpaces = dashboardData?.spaces || [];
-    const categoryBudgets = dashboardData?.categoryBudgets || [];
+    // Check if this user session has already processed the prompt on this mount
+    const currentUserKey = user?._id || user?.email || 'guest';
+    if (promptedUserKeyRef.current === currentUserKey) return;
 
-    const budgetedSpaces = serverSpaces.filter((s) => (Number(s.monthlyBudget) || 0) > 0);
-    const validCategoryBudgets = categoryBudgets.filter((cb) => (Number(cb.amount) || 0) > 0);
+    // Check if user has budget doc or any budget amount
+    const hasBudgetDoc =
+      Boolean(dashboardData?.hasBudget) &&
+      (Number(dashboardData?.monthlyBudget) || 0) > 0;
 
-    const distinctBudgetedNames = new Set([
-      ...budgetedSpaces.map((s) => s.name.toLowerCase()),
-      ...validCategoryBudgets.map((cb) => cb.category.toLowerCase()),
-    ]);
+    let spaceCount = 0;
 
-    const hasAnyBudget =
-      (Number(dashboardData?.monthlyBudget) || 0) > 0 ||
-      budgetedSpaces.length > 0 ||
-      validCategoryBudgets.length > 0;
+    if (hasBudgetDoc) {
+      const serverSpaces = dashboardData?.spaces || [];
+      const categoryBudgets = dashboardData?.categoryBudgets || [];
 
-    const spaceCount = hasAnyBudget ? Math.max(1, distinctBudgetedNames.size) : 0;
+      const budgetedSpaces = serverSpaces.filter((s) => (Number(s.monthlyBudget) || 0) > 0);
+      const validCategoryBudgets = categoryBudgets.filter((cb) => (Number(cb.amount) || 0) > 0);
 
-    // Rule 1: 0 spaces set
+      const distinctBudgetedNames = new Set([
+        ...budgetedSpaces.map((s) => s.name.toLowerCase()),
+        ...validCategoryBudgets.map((cb) => cb.category.toLowerCase()),
+      ]);
+
+      spaceCount = Math.max(1, distinctBudgetedNames.size);
+    } else {
+      spaceCount = 0;
+    }
+
+    // Rule 1: 0 spaces set -> auto prompt every open/refresh
     if (spaceCount === 0) {
-      hasPromptedBudgetRef.current = true;
-      const timer = setTimeout(() => {
-        openSetBudget();
-      }, 400);
-      return () => clearTimeout(timer);
+      promptedUserKeyRef.current = currentUserKey;
+      openSetBudget();
+      return;
     }
 
     // Rule 2: 1 space set -> Daily 1 time
     if (spaceCount === 1) {
-      hasPromptedBudgetRef.current = true;
+      promptedUserKeyRef.current = currentUserKey;
       const todayStr = new Date().toISOString().slice(0, 10);
-      const lastPrompt = localStorage.getItem('pk_budget_prompt_1space_date');
+      const storageKey = `pk_budget_prompt_1space_${currentUserKey}_date`;
+      const lastPrompt = localStorage.getItem(storageKey);
 
       if (lastPrompt !== todayStr) {
-        localStorage.setItem('pk_budget_prompt_1space_date', todayStr);
-        const timer = setTimeout(() => {
-          openSetBudget();
-        }, 400);
-        return () => clearTimeout(timer);
+        localStorage.setItem(storageKey, todayStr);
+        openSetBudget();
       }
       return;
     }
 
-    // Rule 3: 2 spaces set -> Every 2 days (48h interval)
+    // Rule 3: 2 spaces set -> Every 2 days (48 hours interval)
     if (spaceCount === 2) {
-      hasPromptedBudgetRef.current = true;
-      const lastPromptTime = Number(localStorage.getItem('pk_budget_prompt_2spaces_time')) || 0;
+      promptedUserKeyRef.current = currentUserKey;
+      const storageKey = `pk_budget_prompt_2spaces_${currentUserKey}_time`;
+      const lastPromptTime = Number(localStorage.getItem(storageKey)) || 0;
       const nowTime = Date.now();
-      const twoDaysMs = 2 * 24 * 60 * 60 * 1000; // 48 hours
+      const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
 
       if (nowTime - lastPromptTime >= twoDaysMs) {
-        localStorage.setItem('pk_budget_prompt_2spaces_time', String(nowTime));
-        const timer = setTimeout(() => {
-          openSetBudget();
-        }, 400);
-        return () => clearTimeout(timer);
+        localStorage.setItem(storageKey, String(nowTime));
+        openSetBudget();
       }
       return;
     }
 
     // Rule 4: 3 or more spaces set -> Never prompt
     if (spaceCount >= 3) {
-      hasPromptedBudgetRef.current = true;
+      promptedUserKeyRef.current = currentUserKey;
     }
-  }, [isDashboardLoading, dashboardData, openSetBudget]);
+  }, [isDashboardLoading, dashboardData, user, openSetBudget]);
 
   const dailySafeSpend =
     dashboardData?.dynamicSafeDailyBudget || dashboardData?.safeDailyBudget || 0;
