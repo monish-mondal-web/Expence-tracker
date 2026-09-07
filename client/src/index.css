@@ -3677,9 +3677,22 @@ select.form-input {
 
 .budget-progress-fill {
   height: 100%;
-  background: #10B981;
+  background: #34D399;
   border-radius: 999px;
-  transition: width 0.3s ease;
+  transition: width 0.4s ease, background-color 0.3s ease;
+}
+
+.budget-progress-fill.safe {
+  background: #34D399;
+}
+
+.budget-progress-fill.warning {
+  background: #FBBF24;
+}
+
+.budget-progress-fill.over,
+.budget-progress-fill.danger {
+  background: #FB7185;
 }
 
 .budget-metrics-row {

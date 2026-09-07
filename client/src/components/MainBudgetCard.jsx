@@ -143,6 +143,28 @@ export const MainBudgetCard = ({
   const isOverLimit = isDailyLimitExpired;
   const isApproaching = isDailyLimitApproaching;
 
+  // Dynamic progress bar color: Green -> Yellow -> Red
+  let progressColor = '#34D399'; // Default Green (safe / on track)
+  let progressStatusClass = 'safe';
+
+  if (budget > 0 && (totalSpent >= budget || remainingBudget <= 0)) {
+    // 100% or over budget -> Red
+    progressColor = '#FB7185';
+    progressStatusClass = 'over';
+  } else if ((budget > 0 && spentPercent >= 90) || isDailyLimitExpired) {
+    // 90%+ or daily limit expired -> Red
+    progressColor = '#FB7185';
+    progressStatusClass = 'over';
+  } else if ((budget > 0 && spentPercent >= 75) || isDailyLimitApproaching) {
+    // 75% - 89% or approaching limit -> Yellow/Amber
+    progressColor = '#FBBF24';
+    progressStatusClass = 'warning';
+  } else {
+    // Under 75% -> Green
+    progressColor = '#34D399';
+    progressStatusClass = 'safe';
+  }
+
   const handleResetBudget = () => {
     setIsMenuOpen(false);
     requestConfirm({
@@ -402,8 +424,12 @@ export const MainBudgetCard = ({
       {/* Modern Progress Bar */}
       <div className="budget-progress-track">
         <div
-          className={`budget-progress-fill ${isOverLimit ? 'over' : isApproaching ? 'warning' : 'safe'}`}
-          style={{ width: `${Math.min(100, spentPercent)}%` }}
+          className={`budget-progress-fill ${progressStatusClass}`}
+          style={{
+            width: `${Math.min(100, spentPercent)}%`,
+            backgroundColor: progressColor,
+            transition: 'width 0.4s ease, background-color 0.3s ease',
+          }}
         />
       </div>
 
@@ -733,9 +759,13 @@ export const MainBudgetCard = ({
                               style={{
                                 width: `${Math.min(100, Math.round((item.spent / item.budget) * 100))}%`,
                                 height: '100%',
-                                background: isCatOver ? '#FB7185' : (item.color || '#34D399'),
+                                background: isCatOver
+                                  ? '#FB7185'
+                                  : Math.round((item.spent / item.budget) * 100) >= 75
+                                  ? '#FBBF24'
+                                  : '#34D399',
                                 borderRadius: '3px',
-                                transition: 'width 0.3s ease',
+                                transition: 'width 0.3s ease, background-color 0.3s ease',
                               }}
                             />
                           </div>
