@@ -48,11 +48,11 @@
   --danger-border: #FECDD3;
   --danger-text: #9F1239;
   
-  /* Subtle Flat Shadows (No heavy dirty shadows) */
-  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.02);
-  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.03);
-  --shadow-hero: 0 4px 16px rgba(10, 25, 49, 0.15);
-  --shadow-float: 0 6px 20px rgba(0, 0, 0, 0.06);
+  /* Completely Removed Shadows - Crisp Flat Aesthetic */
+  --shadow-subtle: none;
+  --shadow-card: none;
+  --shadow-hero: none;
+  --shadow-float: none;
   
   /* Border Radius */
   --radius-sm: 8px;
@@ -65,10 +65,12 @@
   --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 html, body {
@@ -3053,7 +3055,7 @@ button, input, select, textarea {
   .fintech-phone-container {
     margin: 1.5rem auto;
     border-radius: 36px;
-    box-shadow: 0 20px 60px -15px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #E2E8F0;
     overflow: hidden;
     min-height: 94vh;
   }
@@ -3855,16 +3857,16 @@ button, input, select, textarea {
 .spending-insight-card {
   background: #ECFDF5;
   border: 1px solid #A7F3D0;
-  border-radius: 20px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .insight-icon-circle {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #D1FAE5;
   display: flex;
@@ -3876,50 +3878,54 @@ button, input, select, textarea {
 .insight-body {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .insight-badge-tag {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: #059669;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 2px;
+  line-height: 1;
 }
 
 .insight-headline {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 800;
   color: #064E3B;
-  margin: 0 0 4px;
+  margin: 0 0 2px;
+  line-height: 1.2;
 }
 
 .insight-description {
-  font-size: 0.76rem;
+  font-size: 0.70rem;
   color: #047857;
-  line-height: 1.45;
+  line-height: 1.35;
   margin: 0;
+  word-break: break-word;
 }
 
 .insight-bars-graphic {
   display: flex;
   align-items: flex-end;
-  gap: 4px;
-  height: 38px;
+  gap: 3px;
+  height: 28px;
   flex-shrink: 0;
 }
 
 .insight-bar {
-  width: 5px;
-  border-radius: 3px;
+  width: 4px;
+  border-radius: 2px;
   background: rgba(16, 185, 129, 0.35);
 }
 
-.insight-bar.bar-1 { height: 10px; }
-.insight-bar.bar-2 { height: 16px; }
-.insight-bar.bar-3 { height: 22px; }
-.insight-bar.bar-4 { height: 29px; }
-.insight-bar.bar-5 { height: 38px; background: #10B981; }
+.insight-bar.bar-1 { height: 7px; }
+.insight-bar.bar-2 { height: 12px; }
+.insight-bar.bar-3 { height: 17px; }
+.insight-bar.bar-4 { height: 22px; }
+.insight-bar.bar-5 { height: 28px; background: #10B981; }
 
 /* Top Categories Section */
 .top-categories-section {

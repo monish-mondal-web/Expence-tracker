@@ -20,22 +20,22 @@ export const SpendingInsight = ({ data }) => {
   const isUnderExpected = diffFromExpected >= 0;
   const diffAmount = Math.abs(diffFromExpected);
 
-  let headline = "You're on track this week!";
-  let detailText = `You've spent ${spentPercent}% of your food budget in ${daysElapsed} days. That's ${formatCurrency(diffAmount)} under your expected spending.`;
+  let headline = "On track this week!";
+  let detailText = `Spent ${spentPercent}% in ${daysElapsed}d · ${formatCurrency(diffAmount)} under expected pace.`;
 
   if (budget <= 0) {
-    headline = "Ready to plan your food budget?";
-    detailText = "Set a monthly food budget to unlock daily spending pace recommendations and smart alerts.";
+    headline = "Set food budget";
+    detailText = "Set a monthly budget to unlock daily pace insights.";
   } else if (!isUnderExpected) {
-    headline = "Spending slightly ahead of pace";
-    detailText = `You've spent ${spentPercent}% of your budget in ${daysElapsed} days. That's ${formatCurrency(diffAmount)} above even pacing.`;
+    headline = "Ahead of expected pace";
+    detailText = `Spent ${spentPercent}% in ${daysElapsed}d · ${formatCurrency(diffAmount)} over expected pace.`;
   }
 
   return (
     <div className="spending-insight-card">
       {/* Left Lightbulb Icon Circle */}
       <div className="insight-icon-circle">
-        <Lightbulb size={20} color="#059669" strokeWidth={2.4} />
+        <Lightbulb size={18} color="#059669" strokeWidth={2.4} />
       </div>
 
       {/* Center Text Content */}
