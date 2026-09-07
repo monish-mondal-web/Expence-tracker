@@ -9,6 +9,8 @@ import {
   TrendingUp,
   ShieldCheck,
   ChevronDown,
+  ChevronUp,
+  AlertCircle,
   Utensils,
   MoreVertical,
   SlidersHorizontal,
@@ -24,8 +26,16 @@ export const MainBudgetCard = ({
 }) => {
   const { requestConfirm, resetBudgetOptimistic, activeSpace } = useApp();
   const [internalExpanded, setInternalExpanded] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
+
+  const toggleCategory = (catName) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [catName]: !prev[catName],
+    }));
+  };
 
   const isExpanded = controlledExpanded !== undefined ? controlledExpanded : internalExpanded;
 
@@ -397,7 +407,7 @@ export const MainBudgetCard = ({
         />
       </div>
 
-      {/* Pacing Stats: Safe Daily Spend Target & Average Per Day */}
+      {/* Pacing Stats: Safe Daily Spend Target & Today's Over Limit / Safe Left */}
       <div className="budget-pace-banner">
         <div className="pace-item">
           <span className="pace-label">
@@ -413,11 +423,25 @@ export const MainBudgetCard = ({
 
         <div className="pace-item">
           <span className="pace-label">
-            <TrendingUp size={12} color="#94A3B8" />
-            <span>Your Daily Avg</span>
+            {safeRemainingToday < 0 ? (
+              <>
+                <AlertCircle size={12} color="#FB7185" />
+                <span style={{ color: '#FB7185' }}>Today's Over Limit</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={12} color="#34D399" />
+                <span style={{ color: '#34D399' }}>Today's Safe Left</span>
+              </>
+            )}
           </span>
-          <span className="pace-value">
-            {formatCurrency(yourAverage)}
+          <span
+            className="pace-value"
+            style={{ color: safeRemainingToday < 0 ? '#FB7185' : '#34D399' }}
+          >
+            {safeRemainingToday < 0
+              ? `-${formatCurrency(Math.abs(safeRemainingToday))}`
+              : formatCurrency(safeRemainingToday)}
           </span>
         </div>
       </div>
@@ -453,10 +477,16 @@ export const MainBudgetCard = ({
                   e.stopPropagation();
                   toggleExpanded();
                 }}
-                title="Close breakdown"
-                aria-label="Close breakdown"
+                title="Collapse breakdown"
+                aria-label="Collapse breakdown"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#94A3B8',
+                }}
               >
-                ✕
+                <ChevronUp size={16} />
               </button>
             </div>
 
@@ -595,6 +625,9 @@ export const MainBudgetCard = ({
                   {categoryBreakdown.map((item) => {
                     const hasCatBudget = item.budget > 0;
                     const isCatOver = hasCatBudget && item.spent > item.budget;
+                    const hasSub = Array.isArray(item.subCategories) && item.subCategories.length > 0;
+                    const isSubExpanded = !!expandedCategories[item.category];
+
                     return (
                       <div
                         key={item.category}
@@ -605,15 +638,36 @@ export const MainBudgetCard = ({
                           border: isCatOver
                             ? '1px solid rgba(251, 113, 133, 0.3)'
                             : '1px solid rgba(255, 255, 255, 0.06)',
+                          transition: 'border-color 0.2s ease, background 0.2s ease',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: hasCatBudget ? '5px' : '0' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: hasCatBudget ? '6px' : '0',
+                            cursor: hasSub ? 'pointer' : 'default',
+                            userSelect: 'none',
+                          }}
+                          onClick={() => {
+                            if (hasSub) toggleCategory(item.category);
+                          }}
+                        >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <CategoryIcon name={item.icon} size={14} color={item.color || '#34D399'} />
-                            <span style={{ fontSize: '0.82rem', color: '#F1F5F9', fontWeight: 600 }}>
-                              {item.category}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontSize: '0.82rem', color: '#F1F5F9', fontWeight: 600 }}>
+                                {item.category}
+                              </span>
+                              {hasSub && (
+                                <span style={{ fontSize: '0.62rem', color: '#64748B', fontWeight: 500 }}>
+                                  ({item.subCategories.length})
+                                </span>
+                              )}
+                            </div>
                           </div>
+
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ fontSize: '0.78rem', color: '#E2E8F0', fontWeight: 700 }}>
                               {formatCurrency(item.spent)}
@@ -621,6 +675,7 @@ export const MainBudgetCard = ({
                                 <span style={{ color: '#94A3B8', fontWeight: 500 }}> / {formatCurrency(item.budget)}</span>
                               )}
                             </div>
+
                             {!hasCatBudget ? (
                               <button
                                 type="button"
@@ -655,12 +710,39 @@ export const MainBudgetCard = ({
                                 {isCatOver ? 'Over limit' : `${formatCurrency(item.budget - item.spent)} left`}
                               </span>
                             )}
+
+                            {hasSub && (
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#94A3B8',
+                                  transform: isSubExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                  transition: 'transform 0.25s ease',
+                                }}
+                              >
+                                <ChevronDown size={14} />
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* Mini progress bar */}
+                        {/* Working Mini progress bar */}
                         {hasCatBudget && (
-                          <div style={{ width: '100%', height: '5px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '5px',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              borderRadius: '3px',
+                              overflow: 'hidden',
+                              cursor: hasSub ? 'pointer' : 'default',
+                            }}
+                            onClick={() => {
+                              if (hasSub) toggleCategory(item.category);
+                            }}
+                          >
                             <div
                               style={{
                                 width: `${Math.min(100, Math.round((item.spent / item.budget) * 100))}%`,
@@ -670,6 +752,74 @@ export const MainBudgetCard = ({
                                 transition: 'width 0.3s ease',
                               }}
                             />
+                          </div>
+                        )}
+
+                        {/* Smooth Animated Accordion for Sub-categories */}
+                        {hasSub && (
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateRows: isSubExpanded ? '1fr' : '0fr',
+                              transition: 'grid-template-rows 0.32s cubic-bezier(0.4, 0, 0.2, 1)',
+                            }}
+                          >
+                            <div style={{ minHeight: 0, overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  marginTop: '8px',
+                                  paddingTop: '8px',
+                                  borderTop: '1px dashed rgba(255, 255, 255, 0.08)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '5px',
+                                }}
+                              >
+                                {item.subCategories.map((sub) => {
+                                  const subPercentOfSpace =
+                                    item.spent > 0 ? Math.round((sub.spent / item.spent) * 100) : 0;
+                                  return (
+                                    <div
+                                      key={sub.category}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '5px 8px',
+                                        background: 'rgba(0, 0, 0, 0.22)',
+                                        borderRadius: '6px',
+                                        border: '1px solid rgba(255, 255, 255, 0.04)',
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                                        <CategoryIcon name={sub.icon} size={12} color={sub.color || '#94A3B8'} />
+                                        <span style={{ fontSize: '0.76rem', color: '#CBD5E1', fontWeight: 500 }}>
+                                          {sub.category}
+                                        </span>
+                                      </div>
+
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ fontSize: '0.74rem', color: '#F1F5F9', fontWeight: 600 }}>
+                                          {formatCurrency(sub.spent)}
+                                        </div>
+                                        <span
+                                          style={{
+                                            fontSize: '0.62rem',
+                                            color: '#94A3B8',
+                                            background: 'rgba(255, 255, 255, 0.07)',
+                                            padding: '1px 5px',
+                                            borderRadius: '4px',
+                                            fontWeight: 500,
+                                          }}
+                                        >
+                                          {subPercentOfSpace}%
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>

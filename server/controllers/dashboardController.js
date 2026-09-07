@@ -75,75 +75,55 @@ exports.getDashboardData = async (req, res, next) => {
       daysTracked,
     });
 
-    // 6. Category breakdown combining budgeted and spent categories
-    const categoryTotals = {};
-    const categoryCounts = {};
-    expenses.forEach((e) => {
-      const cat = e.category || 'Other';
-      categoryTotals[cat] = (categoryTotals[cat] || 0) + e.amount;
-      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-    });
-
-    const todayCategoryTotals = {};
-    todayExpenses.forEach((e) => {
-      const cat = e.category || 'Other';
-      todayCategoryTotals[cat] = (todayCategoryTotals[cat] || 0) + e.amount;
-    });
-
-    // Categories metadata for icons and colors
-    const allCategoriesMeta = await Category.find({
-      $or: [{ userId: user._id }, { userId: null }],
-    });
-    const metaMap = {};
-    allCategoriesMeta.forEach((c) => {
-      metaMap[c.name] = { color: c.color, icon: c.icon };
-    });
-
-    // Union of categories that either have an expense or a budget
-    const allCategoryNames = new Set([
-      ...Object.keys(categoryTotals),
-      ...Object.keys(budgetMap),
-    ]);
-
-    const fallbackColors = [
-      '#10B981', '#3B82F6', '#EC4899', '#F59E0B', '#8B5CF6',
-      '#06B6D4', '#EF4444', '#6366F1', '#D97706', '#64748B',
-    ];
-
-    const categoryBreakdown = Array.from(allCategoryNames).map((catName, idx) => {
-      const spent = Math.round((categoryTotals[catName] || 0) * 100) / 100;
-      const budget = Math.round((budgetMap[catName] || 0) * 100) / 100;
-      const remaining = budget > 0 ? Math.round((budget - spent) * 100) / 100 : null;
-      const percent = budget > 0
-        ? Math.min(100, Math.round((spent / budget) * 100))
-        : (totalSpent > 0 ? Math.round((spent / totalSpent) * 100) : 0);
-
-      const meta = metaMap[catName] || {};
-      return {
-        category: catName,
-        spent,
-        budget,
-        remaining,
-        percent,
-        count: categoryCounts[catName] || 0,
-        color: meta.color || fallbackColors[idx % fallbackColors.length],
-        icon: meta.icon || 'Utensils',
-      };
-    }).sort((a, b) => (b.budget || b.spent) - (a.budget || a.spent));
-
-    // 7. Space Hierarchy: Group food subcategories into "Food & Dining" space, separate Room Rent, Gym, Travel
+    // 6. Space Hierarchy and Category Helpers
     const FOOD_SUB_CATEGORIES = [
       'breakfast', 'lunch', 'dinner', 'snacks', 'groceries', 'fruits',
       'vegetables', 'meat / fish', 'meat', 'fish', 'drinks', 'coffee', 'tea'
     ];
 
     const isFoodSubCategory = (catName = '') => {
-      const lower = catName.toLowerCase().trim();
+      const lower = (catName || '').toLowerCase().trim();
       return lower === 'food & dining' || lower === 'food' || FOOD_SUB_CATEGORIES.some((f) => lower.includes(f));
     };
 
+    const isCategoryInSpace = (catName = '', spaceName = '') => {
+      const cat = (catName || '').toLowerCase().trim();
+      const space = (spaceName || '').toLowerCase().trim();
+
+      if (cat === space) return true;
+
+      if (space === 'food & dining' || space === 'food') {
+        return isFoodSubCategory(cat);
+      }
+      if (space === 'room rent') {
+        return cat.includes('rent') || cat.includes('flat') || cat.includes('maintenance') || cat.includes('water bill') || cat.includes('electricity bill') || cat.includes('maid');
+      }
+      if (space === 'gym') {
+        return cat.includes('gym') || cat.includes('fitness') || cat.includes('workout') || cat.includes('trainer') || cat.includes('supplement');
+      }
+      if (space === 'travel') {
+        return cat.includes('travel') || cat.includes('commute') || cat.includes('petrol') || cat.includes('fuel') || cat.includes('metro') || cat.includes('cab') || cat.includes('auto') || cat.includes('bus') || cat.includes('flight');
+      }
+      if (space === 'tour') {
+        return cat.includes('tour') || cat.includes('sightseeing') || cat.includes('hotel') || cat.includes('stay');
+      }
+      if (space === 'health') {
+        return cat.includes('health') || cat.includes('medicine') || cat.includes('doctor') || cat.includes('clinic') || cat.includes('hospital') || cat.includes('test');
+      }
+      if (space === 'shopping') {
+        return cat.includes('shopping') || cat.includes('cloth') || cat.includes('gadget') || cat.includes('footwear') || cat.includes('beauty');
+      }
+      if (space === 'bills & utilities' || space === 'bills') {
+        return cat.includes('bill') || cat.includes('recharge') || cat.includes('wifi') || cat.includes('gas') || cat.includes('dth');
+      }
+      return false;
+    };
+
     // Calculate aggregated Food & Dining totals from all food subcategories
-    const foodExpenses = expenses.filter((e) => isFoodSubCategory(e.category || 'Other'));
+    const foodExpenses = expenses.filter((e) => {
+      if (e.space && (e.space.toLowerCase() === 'food & dining' || e.space.toLowerCase() === 'food')) return true;
+      return isFoodSubCategory(e.category || 'Other');
+    });
     const foodTotalSpent = foodExpenses.reduce((sum, e) => sum + e.amount, 0);
     const foodTodaySpent = foodExpenses.filter((e) => {
       const eDate = new Date(e.date);
@@ -195,6 +175,15 @@ exports.getDashboardData = async (req, res, next) => {
       },
     ];
 
+    // Categories metadata for icons and colors
+    const allCategoriesMeta = await Category.find({
+      $or: [{ userId: user._id }, { userId: null }],
+    });
+    const metaMap = {};
+    allCategoriesMeta.forEach((c) => {
+      metaMap[c.name] = { color: c.color, icon: c.icon };
+    });
+
     // Collect custom spaces (anything that is NOT a food subcategory and not in default top spaces)
     const knownTopNames = new Set(defaultTopSpaces.map((s) => s.name.toLowerCase()));
     const customSpaces = [];
@@ -210,40 +199,6 @@ exports.getDashboardData = async (req, res, next) => {
         knownTopNames.add(lower);
       }
     });
-
-    // Helper to match expense category to space
-    const isCategoryInSpace = (catName = '', spaceName = '') => {
-      const cat = (catName || '').toLowerCase().trim();
-      const space = (spaceName || '').toLowerCase().trim();
-
-      if (cat === space) return true;
-
-      if (space === 'food & dining' || space === 'food') {
-        return isFoodSubCategory(cat);
-      }
-      if (space === 'room rent') {
-        return cat.includes('rent') || cat.includes('flat') || cat.includes('maintenance') || cat.includes('water bill') || cat.includes('electricity bill') || cat.includes('maid');
-      }
-      if (space === 'gym') {
-        return cat.includes('gym') || cat.includes('fitness') || cat.includes('workout') || cat.includes('trainer') || cat.includes('supplement');
-      }
-      if (space === 'travel') {
-        return cat.includes('travel') || cat.includes('commute') || cat.includes('petrol') || cat.includes('fuel') || cat.includes('metro') || cat.includes('cab') || cat.includes('auto') || cat.includes('bus') || cat.includes('flight');
-      }
-      if (space === 'tour') {
-        return cat.includes('tour') || cat.includes('sightseeing') || cat.includes('hotel') || cat.includes('stay');
-      }
-      if (space === 'health') {
-        return cat.includes('health') || cat.includes('medicine') || cat.includes('doctor') || cat.includes('clinic') || cat.includes('hospital') || cat.includes('test');
-      }
-      if (space === 'shopping') {
-        return cat.includes('shopping') || cat.includes('cloth') || cat.includes('gadget') || cat.includes('footwear') || cat.includes('beauty');
-      }
-      if (space === 'bills & utilities' || space === 'bills') {
-        return cat.includes('bill') || cat.includes('recharge') || cat.includes('wifi') || cat.includes('gas') || cat.includes('dth');
-      }
-      return false;
-    };
 
     // Combine all top spaces and calculate individual metrics for non-food spaces
     const allTopSpaces = [...defaultTopSpaces.slice(0, 1), ...defaultTopSpaces.slice(1).map((s) => {
@@ -309,6 +264,57 @@ exports.getDashboardData = async (req, res, next) => {
         ...spaceMetrics,
       };
     })];
+
+    // 7. Space-Aware Category Breakdown with Nested Sub-Categories
+    const categoryBreakdown = allTopSpaces.map((spaceItem) => {
+      const sExpenses = spaceItem.name === 'Food & Dining'
+        ? foodExpenses
+        : expenses.filter((e) => {
+            if (e.space && e.space.toLowerCase() === spaceItem.name.toLowerCase()) return true;
+            return isCategoryInSpace(e.category || 'Other', spaceItem.name);
+          });
+
+      // Group sub-category spending
+      const subTotals = {};
+      const subCounts = {};
+      sExpenses.forEach((e) => {
+        const subCat = e.category || spaceItem.name;
+        subTotals[subCat] = (subTotals[subCat] || 0) + e.amount;
+        subCounts[subCat] = (subCounts[subCat] || 0) + 1;
+      });
+
+      const subCategories = Object.entries(subTotals).map(([catName, amt]) => {
+        const subSpent = Math.round(amt * 100) / 100;
+        const subMeta = metaMap[catName] || {};
+        return {
+          category: catName,
+          spent: subSpent,
+          count: subCounts[catName] || 0,
+          color: subMeta.color || spaceItem.color,
+          icon: subMeta.icon || spaceItem.icon,
+        };
+      }).sort((a, b) => b.spent - a.spent);
+
+      const spent = spaceItem.totalSpent || 0;
+      const budget = spaceItem.monthlyBudget || 0;
+      const remaining = budget > 0 ? Math.round((budget - spent) * 100) / 100 : null;
+      const percent = budget > 0
+        ? Math.min(100, Math.round((spent / budget) * 100))
+        : (totalSpent > 0 ? Math.round((spent / totalSpent) * 100) : 0);
+
+      return {
+        category: spaceItem.name,
+        spent,
+        budget,
+        remaining,
+        percent,
+        count: spaceItem.count || 0,
+        color: spaceItem.color,
+        icon: spaceItem.icon,
+        subCategories,
+      };
+    }).filter((item) => item.budget > 0 || item.spent > 0)
+      .sort((a, b) => (b.budget || b.spent) - (a.budget || a.spent));
 
     // 8. Space Filtering
     const qSpace = req.query.space;
