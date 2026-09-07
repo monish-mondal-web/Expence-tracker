@@ -74,4 +74,5 @@ if (!process.env.VERCEL) {
   });
 }
 
+// Reload trigger: 2026-09-07T20:47:00
 module.exports = app;
