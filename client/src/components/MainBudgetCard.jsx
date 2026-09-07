@@ -63,27 +63,32 @@ export const MainBudgetCard = ({
   const spentPercent = budget > 0 ? Math.min(100, Math.round((totalSpent / budget) * 100)) : 0;
   const remainingPercent = Math.max(0, 100 - spentPercent);
 
-  // Status badge logic: ONLY show 'OVER SAFE LIMIT' when today's spending has crossed the daily safe limit!
+  // Status badge logic: ONLY show 'TODAY LIMIT EXPIRED' when today's spending has reached or crossed the daily safe limit!
+  const isDailyLimitExpired =
+    (effectiveSafeDaily > 0 && todaySpent >= effectiveSafeDaily) ||
+    (budget > 0 && remainingBudget <= 0 && todaySpent > 0);
+
+  const isDailyLimitApproaching =
+    !isDailyLimitExpired &&
+    effectiveSafeDaily > 0 &&
+    todaySpent >= effectiveSafeDaily * 0.85;
+
   let statusText = 'ON TRACK';
   let statusDotColor = '#34D399'; // Emerald
 
-  if (effectiveSafeDaily > 0 && todaySpent > effectiveSafeDaily) {
-    // Daily safe limit has finished / been exceeded
-    statusText = 'OVER SAFE LIMIT';
+  if (isDailyLimitExpired) {
+    statusText = 'TODAY LIMIT EXPIRED';
     statusDotColor = '#FB7185'; // Rose
-  } else if (effectiveSafeDaily > 0 && todaySpent >= effectiveSafeDaily * 0.85) {
+  } else if (isDailyLimitApproaching) {
     statusText = 'APPROACHING LIMIT';
     statusDotColor = '#FBBF24'; // Amber
-  } else if (budget > 0 && remainingBudget <= 0 && todaySpent > 0) {
-    statusText = 'OVER SAFE LIMIT';
-    statusDotColor = '#FB7185'; // Rose
   } else {
     statusText = 'ON TRACK';
     statusDotColor = '#34D399'; // Emerald
   }
 
-  const isOverLimit = statusText === 'OVER SAFE LIMIT';
-  const isApproaching = statusText === 'APPROACHING LIMIT';
+  const isOverLimit = isDailyLimitExpired;
+  const isApproaching = isDailyLimitApproaching;
 
   if (!hasBudget) {
     return (
@@ -200,12 +205,16 @@ export const MainBudgetCard = ({
       >
         {/* Metric 1: Daily Limit */}
         <div className="budget-metric-col">
-          <div className="metric-col-icon">
-            <CalendarDays size={15} color="#34D399" />
+          <div className={`metric-col-icon ${isOverLimit ? 'pink' : ''}`}>
+            <CalendarDays size={15} color={isOverLimit ? '#FB7185' : '#34D399'} />
           </div>
           <div className="metric-col-content">
-            <div className="metric-col-val">{formatCurrency(effectiveSafeDaily)}/day</div>
-            <div className="metric-col-label">Daily limit</div>
+            <div className="metric-col-val" style={{ color: isOverLimit ? '#FDA4AF' : '#FFFFFF' }}>
+              {formatCurrency(effectiveSafeDaily)}/day
+            </div>
+            <div className="metric-col-label" style={{ color: isOverLimit ? '#FB7185' : '#94A3B8' }}>
+              {isOverLimit ? 'Limit expired' : 'Daily limit'}
+            </div>
           </div>
         </div>
 

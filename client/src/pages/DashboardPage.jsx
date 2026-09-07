@@ -23,6 +23,13 @@ export const DashboardPage = () => {
 
   const dailySafeSpend =
     dashboardData?.dynamicSafeDailyBudget || dashboardData?.safeDailyBudget || 0;
+  const todaySpent = dashboardData?.todaySpent || 0;
+  const remainingBudget = dashboardData?.remainingBudget || 0;
+  const budget = dashboardData?.monthlyBudget || 0;
+
+  const isLimitExpired =
+    (dailySafeSpend > 0 && todaySpent >= dailySafeSpend) ||
+    (budget > 0 && remainingBudget <= 0 && todaySpent > 0);
 
   const handleDeleteExpense = (expense) => {
     requestConfirm({
@@ -50,6 +57,7 @@ export const DashboardPage = () => {
         onSetBudget={openSetBudget}
         dailySafeSpend={dailySafeSpend}
         isDailyLimitActive={isBreakdownOpen}
+        isLimitExpired={isLimitExpired}
         onToggleDailyLimit={() => setIsBreakdownOpen((prev) => !prev)}
         onOpenCalendar={() => setActiveTab('calendar')}
       />

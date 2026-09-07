@@ -3702,6 +3702,19 @@ button, input, select, textarea {
   color: #4F46E5;
 }
 
+.quick-action-card.expired-limit {
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+
+.quick-action-icon-circle.expired {
+  background: #EF4444;
+}
+
+.quick-action-label.expired {
+  color: #DC2626;
+}
+
 /* Recent Food Expenses Card */
 .recent-expenses-card {
   background: #FFFFFF;

@@ -9,6 +9,7 @@ export const QuickActions = ({
   onToggleDailyLimit,
   dailySafeSpend = 0,
   isDailyLimitActive = false,
+  isLimitExpired = false,
 }) => {
   return (
     <div className="quick-actions-container">
@@ -41,15 +42,15 @@ export const QuickActions = ({
       {/* 3. Daily Safe Limit (Toggles Dynamic Breakdown) */}
       <button
         type="button"
-        className={`quick-action-card ${isDailyLimitActive ? 'active-limit' : ''}`}
+        className={`quick-action-card ${isDailyLimitActive ? 'active-limit' : ''} ${isLimitExpired ? 'expired-limit' : ''}`}
         onClick={onToggleDailyLimit}
         title="Toggle Dynamic Safe Limit Breakdown"
       >
-        <div className="quick-action-icon-circle accent">
+        <div className={`quick-action-icon-circle ${isLimitExpired ? 'expired' : 'accent'}`}>
           <Compass size={20} color="#FFFFFF" strokeWidth={2.2} />
         </div>
-        <span className="quick-action-label accent">
-          Daily {formatCurrency(dailySafeSpend)}
+        <span className={`quick-action-label ${isLimitExpired ? 'expired' : 'accent'}`}>
+          {isLimitExpired ? 'Limit Expired' : `Daily ${formatCurrency(dailySafeSpend)}`}
         </span>
       </button>
 
