@@ -7,29 +7,61 @@ export const LoadingBar = ({
   message = "Loading your food budget...",
   progress: externalProgress,
   fullScreen = true,
+  onComplete,
 }) => {
-  const [internalProgress, setInternalProgress] = useState(externalProgress ?? 15);
+  const [internalProgress, setInternalProgress] = useState(externalProgress ?? 0);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
     if (externalProgress !== undefined) {
       setInternalProgress(externalProgress);
+      if (externalProgress >= 100) {
+        setIsFadingOut(true);
+        const timer = setTimeout(() => {
+          onComplete?.();
+        }, 300);
+        return () => clearTimeout(timer);
+      }
       return;
     }
 
-    // Smooth fluid progression 15% -> 96%
+    // Smooth fluid progression from 0% -> 100% over ~1.6s
     const interval = setInterval(() => {
       setInternalProgress((prev) => {
-        if (prev >= 96) {
+        if (prev >= 100) {
           clearInterval(interval);
-          return 96;
+          return 100;
         }
-        const increment = Math.max(1, Math.floor(Math.random() * 8) + 2);
-        return Math.min(96, prev + increment);
+        let step = 2;
+        if (prev < 30) step = 3;
+        else if (prev < 70) step = 2;
+        else if (prev < 90) step = 2;
+        else step = 1;
+
+        return Math.min(100, prev + step);
       });
-    }, 110);
+    }, 28);
 
     return () => clearInterval(interval);
-  }, [externalProgress]);
+  }, [externalProgress, onComplete]);
+
+  // When 100% is reached, smoothly trigger onComplete callback
+  useEffect(() => {
+    if (internalProgress >= 100 && externalProgress === undefined) {
+      const fadeTimer = setTimeout(() => {
+        setIsFadingOut(true);
+      }, 180);
+
+      const doneTimer = setTimeout(() => {
+        onComplete?.();
+      }, 480);
+
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(doneTimer);
+      };
+    }
+  }, [internalProgress, externalProgress, onComplete]);
 
   const currentProgress = externalProgress !== undefined ? externalProgress : internalProgress;
 
@@ -54,7 +86,7 @@ export const LoadingBar = ({
         {/* Liquid level */}
         <div
           className="water-liquid-body"
-          style={{ height: `${Math.min(100, Math.max(12, currentProgress))}%` }}
+          style={{ height: `${Math.min(100, Math.max(8, currentProgress))}%` }}
         >
           {/* Waves on the water surface */}
           <div className="water-wave-front" />
@@ -79,10 +111,12 @@ export const LoadingBar = ({
         <div className="water-progressbar-track">
           <div
             className="water-progressbar-fill"
-            style={{ width: `${Math.min(100, Math.max(6, currentProgress))}%` }}
+            style={{ width: `${Math.min(100, Math.max(4, currentProgress))}%` }}
           />
         </div>
-        <p className="water-loader-status-msg">{message}</p>
+        <p className="water-loader-status-msg">
+          {currentProgress >= 100 ? "Ready! Opening FinFood..." : message}
+        </p>
       </div>
     </div>
   );
@@ -92,7 +126,7 @@ export const LoadingBar = ({
   }
 
   return (
-    <div className="water-loader-fullscreen">
+    <div className={`water-loader-fullscreen ${isFadingOut ? 'fade-out' : ''}`}>
       {content}
     </div>
   );

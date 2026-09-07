@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider, useApp } from './context/AppContext';
 import { MainLayout } from './layouts/MainLayout';
@@ -14,13 +14,16 @@ import { SettingsPage } from './pages/SettingsPage';
 const AppContent = () => {
   const { activeTab } = useApp();
   const { isAuthenticated, isLoading } = useAuth();
+  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
 
-  if (isLoading) {
+  // App opens ONLY after the water loading animation has completed (100%)
+  if (!isAnimationComplete || isLoading) {
     return (
       <LoadingBar
         appName="FinFood"
         subtitle="Smart Food Budget & Expense Tracker"
         message="Loading your smart food budget..."
+        onComplete={() => setIsAnimationComplete(true)}
       />
     );
   }

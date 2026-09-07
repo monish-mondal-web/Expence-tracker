@@ -4205,6 +4205,13 @@ button, input, select, textarea {
   justify-content: center;
   z-index: 9999;
   overflow: hidden;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.water-loader-fullscreen.fade-out {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
 }
 
 .water-loader-inline {
