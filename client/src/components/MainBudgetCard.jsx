@@ -91,6 +91,24 @@ export const MainBudgetCard = ({
     ? (spaceObj?.safeDailyBudget || 0)
     : (data?.safeDailyBudget || 0);
   const effectiveSafeDaily = dynamicSafeDailyBudget || safeDailyBudget || 0;
+
+  const dynamicDailyBudget = isSpaceMode
+    ? (spaceObj?.dynamicDailyBudget || 0)
+    : (data?.dynamicDailyBudget || 0);
+  const baseDailyBudget = isSpaceMode
+    ? (spaceObj?.baseDailyBudget || 0)
+    : (data?.baseDailyBudget || 0);
+
+  const maxDailyLimit = remainingBudget <= 0
+    ? 0
+    : (dynamicDailyBudget > 0
+        ? dynamicDailyBudget
+        : (remainingDays > 0 && remainingBudget > 0
+            ? Math.round((remainingBudget / remainingDays) * 100) / 100
+            : (baseDailyBudget > 0
+                ? baseDailyBudget
+                : (budget > 0 ? Math.round((budget / 30) * 100) / 100 : 0))));
+
   const todaySpent = isSpaceMode ? (spaceObj?.todaySpent || 0) : (data?.todaySpent || 0);
   const smartMessage = isSpaceMode ? (spaceObj?.smartMessage || '') : (data?.smartMessage || '');
 
@@ -548,9 +566,9 @@ export const MainBudgetCard = ({
               </div>
 
               <div className="breakdown-cell">
-                <span className="breakdown-label">Safe Buffer Left</span>
+                <span className="breakdown-label">Maximum Daily Limit</span>
                 <span className="breakdown-val emerald">
-                  {formatCurrency(remainingBudget)}
+                  {formatCurrency(maxDailyLimit)}
                 </span>
               </div>
             </div>
