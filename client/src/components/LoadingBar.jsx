@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Leaf } from 'lucide-react';
 
 export const LoadingBar = ({
   appName = "FinFood",
@@ -69,10 +68,6 @@ export const LoadingBar = ({
     <div className="water-loader-content">
       {/* App Branding Header */}
       <div className="water-loader-brand">
-        <div className="water-loader-brand-badge">
-          <Leaf size={12} color="#059669" />
-          <span>Expense Tracker</span>
-        </div>
         <h1 className="water-loader-app-title">
           {appName}<span className="accent">.</span>
         </h1>

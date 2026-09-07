@@ -5,7 +5,7 @@ import {
   X,
   LogOut,
   User,
-  Target,
+  ArrowUpRight,
   Plus,
   ShieldCheck,
   ChevronRight,
@@ -132,7 +132,7 @@ export const ProfileDrawer = ({ isOpen, onClose }) => {
 
           <button type="button" className="profile-menu-row" onClick={handleOpenBudget}>
             <div className="profile-menu-icon">
-              <Target size={16} color="#0F172A" />
+              <ArrowUpRight size={16} color="#0F172A" />
             </div>
             <div className="profile-menu-text">
               <strong>Monthly Food Budget</strong>

@@ -128,10 +128,10 @@ export const MainBudgetCard = ({
       <div className="budget-card-header">
         <div className="budget-title-group">
           <div className="budget-icon-square">
-            <Utensils size={22} color="#34D399" strokeWidth={2.4} />
+            <ArrowUpRight size={22} color="#34D399" strokeWidth={2.4} />
           </div>
           <div>
-            <div className="budget-card-title">Food Budget</div>
+            <div className="budget-card-title">Monthly Food Budget</div>
             <div className="budget-card-subtitle">Your monthly budget</div>
           </div>
         </div>

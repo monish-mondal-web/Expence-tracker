@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { CategoryIcon, AVAILABLE_ICONS } from '../components/CategoryIcon';
 import { CARTOON_AVATAR_PRESETS } from '../components/AuthScreen';
-import { Target, DollarSign, Tag, Plus, Trash2, User, Loader2 } from 'lucide-react';
+import { ArrowUpRight, DollarSign, Tag, Plus, Trash2, User, Loader2 } from 'lucide-react';
 
 export const SettingsPage = () => {
   const {
@@ -209,7 +209,7 @@ export const SettingsPage = () => {
 
         <div className="section-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Target size={20} color="#0F172A" />
+            <ArrowUpRight size={20} color="#0F172A" />
             <h2>Monthly Food Budget</h2>
           </div>
         </div>
@@ -261,12 +261,215 @@ export const SettingsPage = () => {
           </div>
         </div>
 
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '1.25rem' }}>
-          Select from standard default food categories or add custom categories.
-        </p>
+        {/* 1. ADD CUSTOM FOOD CATEGORY AT THE TOP */}
+        <div
+          style={{
+            background: '#FFFFFF',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '1.4rem',
+            marginBottom: '1.75rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.2rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Plus size={16} color="#059669" strokeWidth={2.5} />
+                </div>
+                <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                  Add Custom Food Category
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '3px 0 0' }}>
+                Pick an icon, select a vibrant theme color, and name your category.
+              </p>
+            </div>
 
-        {/* Existing Categories List */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '2rem' }}>
+            {/* Live Preview Pill */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F8FAFC', padding: '0.35rem 0.8rem', borderRadius: '9999px', border: '1px solid #E2E8F0' }}>
+              <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Preview:</span>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '3px 10px',
+                  borderRadius: '10px',
+                  background: `${newCatColor}18`,
+                  border: `1px solid ${newCatColor}35`,
+                  color: newCatColor,
+                }}
+              >
+                <CategoryIcon name={newCatIcon} size={15} color={newCatColor} />
+                <strong style={{ fontSize: '0.82rem' }}>
+                  {newCatName.trim() || 'New Category'}
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleAddCategory} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+            {/* Category Name */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px' }}>
+                Category Name
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Desserts, Street Food, Midnight Munchies"
+                className="form-input"
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                required
+              />
+            </div>
+
+            {/* Visual Icon Grid */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px' }}>
+                Select Icon: <span style={{ color: '#059669', fontWeight: 800 }}>{newCatIcon}</span>
+              </label>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(42px, 1fr))',
+                  gap: '8px',
+                  maxHeight: '136px',
+                  overflowY: 'auto',
+                  padding: '8px',
+                  background: '#F8FAFC',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid #E2E8F0',
+                }}
+              >
+                {AVAILABLE_ICONS.map((iconName) => {
+                  const isSelected = newCatIcon === iconName;
+                  return (
+                    <button
+                      key={iconName}
+                      type="button"
+                      onClick={() => setNewCatIcon(iconName)}
+                      title={iconName}
+                      style={{
+                        height: '42px',
+                        borderRadius: '10px',
+                        background: isSelected ? '#FFFFFF' : 'transparent',
+                        border: isSelected ? `2px solid ${newCatColor}` : '1px solid transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <CategoryIcon
+                        name={iconName}
+                        size={20}
+                        color={isSelected ? newCatColor : '#64748B'}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Color Swatches */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px' }}>
+                Select Color:
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {[
+                  '#10B981', // Emerald
+                  '#059669', // Forest Green
+                  '#F59E0B', // Amber
+                  '#F43F5E', // Rose
+                  '#8B5CF6', // Purple
+                  '#0EA5E9', // Ocean Blue
+                  '#F97316', // Orange
+                  '#EC4899', // Pink
+                  '#6366F1', // Indigo
+                  '#64748B', // Slate
+                ].map((colorHex) => {
+                  const isSelected = newCatColor.toLowerCase() === colorHex.toLowerCase();
+                  return (
+                    <button
+                      key={colorHex}
+                      type="button"
+                      onClick={() => setNewCatColor(colorHex)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: colorHex,
+                        border: isSelected ? '3px solid #0F172A' : '2px solid #FFFFFF',
+                        cursor: 'pointer',
+                        transform: isSelected ? 'scale(1.12)' : 'scale(1)',
+                        transition: 'all 0.15s ease',
+                      }}
+                      title={colorHex}
+                    />
+                  );
+                })}
+
+                {/* Custom Color Input */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '6px' }}>
+                  <input
+                    type="color"
+                    value={newCatColor}
+                    onChange={(e) => setNewCatColor(e.target.value)}
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      padding: '2px',
+                      border: '1px solid #CBD5E1',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                    }}
+                    title="Choose custom color"
+                  />
+                  <span style={{ fontSize: '0.78rem', color: '#64748B', fontFamily: 'monospace' }}>
+                    {newCatColor.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Add Category Button */}
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={isAddingCat}
+              style={{
+                width: 'auto',
+                alignSelf: 'flex-start',
+                margin: 0,
+                padding: '0.7rem 1.6rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              <span>{isAddingCat ? 'Adding Category...' : 'Add Category'}</span>
+            </button>
+          </form>
+        </div>
+
+        {/* 2. Existing Categories Grid */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+          <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+            Available Food Categories ({categories.length})
+          </h4>
+          <span style={{ fontSize: '0.78rem', color: '#64748B' }}>Default & custom food categories</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
           {categories.map((cat) => (
             <div
               key={cat._id || cat.name}
@@ -301,65 +504,6 @@ export const SettingsPage = () => {
               )}
             </div>
           ))}
-        </div>
-
-        {/* Add Custom Category Form */}
-        <div style={{ background: 'var(--color-surface-subtle)', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
-          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-primary)' }}>
-            Add Custom Food Category
-          </h4>
-
-          <form onSubmit={handleAddCategory} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem' }}>
-              <div>
-                <label className="form-label">Category Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Desserts, Street Food"
-                  className="form-input"
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="form-label">Icon</label>
-                <select
-                  className="form-input"
-                  value={newCatIcon}
-                  onChange={(e) => setNewCatIcon(e.target.value)}
-                >
-                  {AVAILABLE_ICONS.map((iconName) => (
-                    <option key={iconName} value={iconName}>
-                      {iconName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="form-label">Color</label>
-                <input
-                  type="color"
-                  className="form-input"
-                  value={newCatColor}
-                  onChange={(e) => setNewCatColor(e.target.value)}
-                  style={{ height: '42px', padding: '2px 4px', cursor: 'pointer' }}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={isAddingCat}
-              style={{ width: 'auto', alignSelf: 'flex-start', margin: 0, padding: '0.65rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            >
-              <Plus size={16} />
-              <span>{isAddingCat ? 'Adding...' : 'Add Category'}</span>
-            </button>
-          </form>
         </div>
       </div>
     </div>
