@@ -58,6 +58,11 @@ export const MainLayout = ({ children }) => {
     return 'Good evening,';
   };
 
+  // Dynamic current date formatting (e.g. "7 Sep")
+  const todayDate = new Date();
+  const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const todayFormatted = `${todayDate.getDate()} ${shortMonths[todayDate.getMonth()]}`;
+
   return (
     <div className="fintech-app-wrapper">
       <div className="fintech-phone-container">
@@ -73,16 +78,17 @@ export const MainLayout = ({ children }) => {
               </h1>
             </div>
 
-            {/* Right: Calendar & Profile Avatar button */}
+            {/* Right: Calendar Date & Profile Avatar button */}
             <div className="header-action-buttons">
               <button
                 type="button"
-                className={`header-icon-btn ${showMonthPicker ? 'active' : ''}`}
-                onClick={() => setShowMonthPicker((prev) => !prev)}
-                title={`Select Month (${formatMonthYear(currentMonth, currentYear)})`}
-                aria-label="Toggle month picker"
+                className={`header-calendar-btn ${activeTab === 'calendar' ? 'active' : ''}`}
+                onClick={() => setActiveTab('calendar')}
+                title={`Calendar (${todayFormatted})`}
+                aria-label="Open Calendar page"
               >
-                <CalendarDays size={18} />
+                <CalendarDays size={15} />
+                <span className="header-calendar-date-lbl">{todayFormatted}</span>
               </button>
 
               <button

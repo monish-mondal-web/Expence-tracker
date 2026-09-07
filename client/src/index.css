@@ -3212,6 +3212,41 @@ select.form-input {
   flex-shrink: 0;
 }
 
+.header-calendar-btn {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.header-calendar-btn:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #0F172A;
+}
+
+.header-calendar-btn.active {
+  background: #E6F7ED;
+  border-color: #A7F3D0;
+  color: #059669;
+}
+
+.header-calendar-date-lbl {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: inherit;
+}
+
 .header-icon-btn {
   width: 38px;
   height: 38px;
@@ -3225,7 +3260,7 @@ select.form-input {
   cursor: pointer;
   transition: all 0.15s ease;
   position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
 }
 
 .header-icon-btn svg {
