@@ -90,7 +90,7 @@ export const LoadingBar = ({
           <PocketMoneyIcon size={52} />
         </div>
         <h1 className="water-loader-app-title">
-          {appName}<span className="accent">.</span>
+          {appName}
         </h1>
         <p style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 500, margin: 0 }}>
           {subtitle}
