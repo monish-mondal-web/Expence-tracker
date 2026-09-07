@@ -15,8 +15,9 @@ export const SpaceSwitcher = () => {
 
   // Spaces list from dashboardData or categories
   const serverSpaces = dashboardData?.spaces || [];
+  const categoryBreakdown = dashboardData?.categoryBreakdown || [];
 
-  // Core recommended spaces in priority order
+  // Core recommended spaces
   const PRESET_SPACES = ['Food & Dining', 'Room Rent', 'Gym', 'Travel'];
 
   // Food subcategories that belong UNDER Food & Dining and MUST NOT appear as top-level spaces
@@ -26,55 +27,133 @@ export const SpaceSwitcher = () => {
     'coffee', 'tea', 'beverages'
   ]);
 
-  // Merge spaces list
-  const displaySpaces = [];
-  const addedNames = new Set();
+  // Aggregate and sort spaces:
+  // 1. Food & Dining is ALWAYS 1st right after "All Spaces"
+  // 2. Spaces with money added (monthlyBudget > 0 or totalSpent > 0) come next (sorted descending)
+  // 3. Unbudgeted spaces come after that
+  const spaceMap = new Map();
 
-  // 1. Add preset spaces first if they exist
-  PRESET_SPACES.forEach((name) => {
-    const s = serverSpaces.find((x) => x.name.toLowerCase() === name.toLowerCase()) ||
-              categories.find((x) => x.name.toLowerCase() === name.toLowerCase());
-    if (s) {
-      displaySpaces.push({
-        name: s.name,
-        icon: s.icon || 'Utensils',
-        color: s.color || '#10B981',
-        monthlyBudget: s.monthlyBudget || 0,
-        hasBudget: !!s.hasBudget,
-      });
-      addedNames.add(s.name.toLowerCase());
+  // Find Food & Dining data
+  const foodServer = serverSpaces.find((s) => s.name.toLowerCase() === 'food & dining');
+  const foodBreakdown = categoryBreakdown.find((c) => c.category.toLowerCase() === 'food & dining');
+  const foodBudget = foodServer?.monthlyBudget || foodBreakdown?.budget || dashboardData?.monthlyBudget || 0;
+  const foodSpent = foodServer?.totalSpent || foodBreakdown?.spent || dashboardData?.totalSpent || 0;
+
+  spaceMap.set('food & dining', {
+    name: 'Food & Dining',
+    icon: foodServer?.icon || 'Utensils',
+    color: foodServer?.color || '#10B981',
+    monthlyBudget: foodBudget,
+    totalSpent: foodSpent,
+    hasBudget: foodBudget > 0,
+    hasMoney: foodBudget > 0 || foodSpent > 0,
+  });
+
+  // Collect from serverSpaces
+  serverSpaces.forEach((s) => {
+    const lower = s.name.toLowerCase().trim();
+    if (lower === 'food & dining' || FOOD_SUB_NAMES.has(lower)) return;
+    const b = s.monthlyBudget || 0;
+    const sp = s.totalSpent || 0;
+    spaceMap.set(lower, {
+      name: s.name,
+      icon: s.icon || 'Utensils',
+      color: s.color || '#6366F1',
+      monthlyBudget: b,
+      totalSpent: sp,
+      hasBudget: b > 0,
+      hasMoney: b > 0 || sp > 0,
+    });
+  });
+
+  // Collect from categoryBreakdown
+  categoryBreakdown.forEach((cb) => {
+    const lower = cb.category.toLowerCase().trim();
+    if (lower === 'food & dining' || FOOD_SUB_NAMES.has(lower)) return;
+    const b = cb.budget || 0;
+    const sp = cb.spent || 0;
+    const existing = spaceMap.get(lower);
+    if (existing) {
+      existing.monthlyBudget = existing.monthlyBudget || b;
+      existing.totalSpent = existing.totalSpent || sp;
+      existing.hasBudget = existing.hasBudget || b > 0;
+      existing.hasMoney = existing.monthlyBudget > 0 || existing.totalSpent > 0;
     } else {
-      // Provide default fallback
+      spaceMap.set(lower, {
+        name: cb.category,
+        icon: cb.icon || 'Sparkles',
+        color: cb.color || '#EC4899',
+        monthlyBudget: b,
+        totalSpent: sp,
+        hasBudget: b > 0,
+        hasMoney: b > 0 || sp > 0,
+      });
+    }
+  });
+
+  // Add preset spaces fallback if not already added
+  PRESET_SPACES.forEach((name) => {
+    const lower = name.toLowerCase();
+    if (!spaceMap.has(lower)) {
       let icon = 'Utensils';
       let color = '#10B981';
       if (name === 'Room Rent') { icon = 'Home'; color = '#6366F1'; }
       if (name === 'Gym') { icon = 'Dumbbell'; color = '#F59E0B'; }
       if (name === 'Travel') { icon = 'Car'; color = '#3B82F6'; }
-      displaySpaces.push({
+      spaceMap.set(lower, {
         name,
         icon,
         color,
         monthlyBudget: 0,
+        totalSpent: 0,
         hasBudget: false,
+        hasMoney: false,
       });
-      addedNames.add(name.toLowerCase());
     }
   });
 
-  // 2. Add remaining server spaces / custom spaces (excluding food sub-categories)
-  serverSpaces.forEach((s) => {
-    const lower = s.name.toLowerCase().trim();
-    if (!addedNames.has(lower) && !FOOD_SUB_NAMES.has(lower)) {
-      displaySpaces.push({
-        name: s.name,
-        icon: s.icon || 'Utensils',
-        color: s.color || '#64748B',
-        monthlyBudget: s.monthlyBudget || 0,
-        hasBudget: !!s.hasBudget,
-      });
-      addedNames.add(lower);
-    }
+  // Add custom categories if not present
+  if (Array.isArray(categories)) {
+    categories.forEach((c) => {
+      const lower = c.name.toLowerCase().trim();
+      if (!spaceMap.has(lower) && !FOOD_SUB_NAMES.has(lower)) {
+        spaceMap.set(lower, {
+          name: c.name,
+          icon: c.icon || 'Sparkles',
+          color: c.color || '#8B5CF6',
+          monthlyBudget: 0,
+          totalSpent: 0,
+          hasBudget: false,
+          hasMoney: false,
+        });
+      }
+    });
+  }
+
+  // Separate Food & Dining from other spaces
+  const spacesList = Array.from(spaceMap.values());
+  const foodSpace = spacesList.find((s) => s.name.toLowerCase() === 'food & dining');
+  const otherSpaces = spacesList.filter((s) => s.name.toLowerCase() !== 'food & dining');
+
+  // Sort other spaces:
+  // 1. Those with money (monthlyBudget > 0 or totalSpent > 0) come first, sorted by amount descending
+  // 2. Spaces without money come after
+  otherSpaces.sort((a, b) => {
+    const aVal = Math.max(a.monthlyBudget || 0, a.totalSpent || 0);
+    const bVal = Math.max(b.monthlyBudget || 0, b.totalSpent || 0);
+
+    if (aVal > 0 && bVal === 0) return -1;
+    if (aVal === 0 && bVal > 0) return 1;
+    if (aVal > 0 && bVal > 0) return bVal - aVal;
+
+    const aIsPreset = PRESET_SPACES.some((p) => p.toLowerCase() === a.name.toLowerCase());
+    const bIsPreset = PRESET_SPACES.some((p) => p.toLowerCase() === b.name.toLowerCase());
+    if (aIsPreset && !bIsPreset) return -1;
+    if (!aIsPreset && bIsPreset) return 1;
+    return a.name.localeCompare(b.name);
   });
+
+  const displaySpaces = foodSpace ? [foodSpace, ...otherSpaces] : otherSpaces;
 
   return (
     <div className="space-switcher-wrapper" role="region" aria-label="Expense Spaces Switcher">
