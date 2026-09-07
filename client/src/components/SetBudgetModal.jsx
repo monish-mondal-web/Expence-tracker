@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { formatMonthYear, getMonthNames } from '../utils/date';
-import { X, Target } from 'lucide-react';
+import { X, ArrowUpRight } from 'lucide-react';
 
 export const SetBudgetModal = () => {
   const {
@@ -70,7 +70,7 @@ export const SetBudgetModal = () => {
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Target size={18} color="#0F172A" />
+              <ArrowUpRight size={18} color="#0F172A" strokeWidth={2.2} />
             </div>
             <h3>Monthly Food Budget</h3>
           </div>
