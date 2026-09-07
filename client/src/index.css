@@ -71,6 +71,8 @@
   padding: 0;
   box-shadow: none !important;
   text-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
 }
 
 @keyframes spin {
@@ -95,11 +97,25 @@ html, body {
   line-height: 1.5;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
-button, input, select, textarea {
+button, input, select, textarea, [role="button"], [type="button"], [type="submit"], a {
   font-family: inherit;
-  outline: none;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none;
+}
+
+button, a, [role="button"], [type="button"], [type="submit"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button:focus, button:focus-visible, a:focus, a:focus-visible,
+[role="button"]:focus, [role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Base Layout Structure */
@@ -4041,13 +4057,23 @@ select.form-input {
   align-items: center;
   gap: 7px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.quick-action-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+@media (hover: hover) and (pointer: fine) {
+  .quick-action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.quick-action-card:active {
+  transform: scale(0.95);
 }
 
 .quick-action-card.primary {
@@ -4056,8 +4082,19 @@ select.form-input {
 }
 
 .quick-action-card.active-limit {
-  background: #EEF2FF;
-  border-color: #C7D2FE;
+  background: #ECFDF5;
+  border-color: #6EE7B7;
+}
+
+.quick-action-card.expired-limit {
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+
+.quick-action-card.active-limit.expired-limit,
+.quick-action-card.expired-limit.active-limit {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
 }
 
 .quick-action-icon-circle {
@@ -4068,6 +4105,7 @@ select.form-input {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.15s ease;
 }
 
 .quick-action-icon-circle.primary {
@@ -4075,7 +4113,7 @@ select.form-input {
 }
 
 .quick-action-icon-circle.accent {
-  background: #6366F1;
+  background: #10B981;
 }
 
 .quick-action-label {
@@ -4090,12 +4128,7 @@ select.form-input {
 }
 
 .quick-action-label.accent {
-  color: #4F46E5;
-}
-
-.quick-action-card.expired-limit {
-  background: #FEF2F2;
-  border-color: #FECACA;
+  color: #047857;
 }
 
 .quick-action-icon-circle.expired {
