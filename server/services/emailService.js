@@ -58,7 +58,7 @@ const sendResetCodeEmail = async (toEmail, code, userName = 'User') => {
     </head>
     <body>
       <div class="container">
-        <div class="logo">FinFood Tracker</div>
+        <div class="logo">Pocket Khorcha</div>
         <h1>Password Reset Verification</h1>
         <p>Hello ${userName},</p>
         <p>We received a request to reset your password. Use the 6-digit verification code below to complete your password reset:</p>
@@ -66,7 +66,7 @@ const sendResetCodeEmail = async (toEmail, code, userName = 'User') => {
           <div class="code">${code}</div>
         </div>
         <p style="font-size: 13px; color: #64748B;">This code is valid for <strong>15 minutes</strong>. If you did not request this, you can safely ignore this email.</p>
-        <div class="footer">Team MDA — FinFood Expense & Budget Tracker</div>
+        <div class="footer">Pocket Khorcha — Track. Spend. Save.</div>
       </div>
     </body>
     </html>
@@ -76,7 +76,7 @@ const sendResetCodeEmail = async (toEmail, code, userName = 'User') => {
     const info = await transporter.sendMail({
       from: fromAddress,
       to: toEmail,
-      subject: `Your FinFood Password Reset Code: ${code}`,
+      subject: `Your Pocket Khorcha Password Reset Code: ${code}`,
       html,
     });
     console.log(`[Email Service] Password reset email sent to ${toEmail}. Message ID: ${info.messageId}`);

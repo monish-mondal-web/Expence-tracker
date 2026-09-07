@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
+import { PocketMoneyIcon } from './PocketLogo';
 import {
   X,
   LogOut,
@@ -41,8 +42,8 @@ export const ProfileDrawer = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const displayName = user?.name || 'FinFood User';
-  const displayEmail = user?.email || 'user@finfood.com';
+  const displayName = user?.name || 'Pocket Khorcha User';
+  const displayEmail = user?.email || 'user@pocketkhorcha.com';
 
   const handleLogout = () => {
     onClose();
@@ -110,7 +111,7 @@ export const ProfileDrawer = ({ isOpen, onClose }) => {
             </div>
             <div className="profile-badge">
               <ShieldCheck size={12} color="#10B981" />
-              <span>FinFood Verified Account</span>
+              <span>Pocket Khorcha Verified</span>
             </div>
           </div>
         </div>
@@ -135,7 +136,7 @@ export const ProfileDrawer = ({ isOpen, onClose }) => {
               <ArrowUpRight size={16} color="#0F172A" />
             </div>
             <div className="profile-menu-text">
-              <strong>Monthly Food Budget</strong>
+              <strong>Monthly Budget Limits</strong>
               <span>Configure budget limits & safe spend</span>
             </div>
             <ChevronRight size={16} color="#94A3B8" />
@@ -146,8 +147,8 @@ export const ProfileDrawer = ({ isOpen, onClose }) => {
               <Plus size={16} color="#0F172A" />
             </div>
             <div className="profile-menu-text">
-              <strong>Add Food Expense</strong>
-              <span>Log meal, grocery, or snack cost</span>
+              <strong>Add Expense</strong>
+              <span>Log meal, rent, or daily cost</span>
             </div>
             <ChevronRight size={16} color="#94A3B8" />
           </button>
@@ -165,9 +166,12 @@ export const ProfileDrawer = ({ isOpen, onClose }) => {
             <span>Sign Out</span>
           </button>
 
-          <p className="profile-footer-copy">
-            Pocket Khorcha &bull; Track. Spend. Save.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginTop: '0.65rem' }}>
+            <PocketMoneyIcon size={20} />
+            <p className="profile-footer-copy" style={{ margin: 0 }}>
+              Pocket Khorcha &bull; Track. Spend. Save.
+            </p>
+          </div>
         </div>
       </aside>
     </div>

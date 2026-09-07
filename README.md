@@ -1,6 +1,6 @@
-# FinFood — Food Expense & Monthly Budget Tracker
+# Pocket Khorcha — Track. Spend. Save.
 
-A complete, production-ready full-stack Food Expense & Monthly Budget Tracker web application inspired by modern fintech design and the **shadcn/ui** design language. FinFood provides dynamic safe-zone spending recommendations, real-time optimistic UI updates, space-optimized colorful widgets & charts, and full user authentication connected to **MongoDB Atlas**.
+A complete, production-ready full-stack Expense & Monthly Budget Tracker web application inspired by modern fintech design and the **shadcn/ui** design language. Pocket Khorcha provides dynamic safe-zone spending recommendations, real-time optimistic UI updates, space-optimized colorful widgets & charts, and full user authentication connected to **MongoDB Atlas**.
 
 ---
 

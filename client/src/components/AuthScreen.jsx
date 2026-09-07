@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
+import { PocketMoneyIcon } from './PocketLogo';
 import {
   Mail,
   Lock,
@@ -81,7 +82,7 @@ export const AuthScreen = () => {
     setIsLoading(true);
     try {
       await register(name.trim(), email.trim(), password, avatarPreview);
-      showToast('Account created! Welcome to FinFood.');
+      showToast('Account created! Welcome to Pocket Khorcha.');
       triggerRefresh();
     } catch (err) {
       showToast(err.message || 'Registration failed.', 'error');
@@ -101,10 +102,10 @@ export const AuthScreen = () => {
         if (res.emailSent) {
           setReceivedCodeBanner('');
           setResetCode('');
-          showToast('Verification email sent via Nodemailer!');
+          showToast('Verification code sent to your email!');
         } else {
           setReceivedCodeBanner(res.resetCode);
-          setResetCode(res.resetCode);
+          setResetCode(res.resetCode || '');
           showToast('Verification code generated!');
         }
         setForgotStep(2);
@@ -137,14 +138,20 @@ export const AuthScreen = () => {
   return (
     <div className="auth-fullscreen-container">
       <div className="auth-card">
-        {/* Header Title & Subtitle */}
-        <div className="auth-header" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+        {/* App Logo & Header Title */}
+        <div className="auth-header" style={{ marginBottom: '1.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ marginBottom: '0.65rem' }}>
+            <PocketMoneyIcon size={46} />
+          </div>
+          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>
+            Pocket Khorcha
+          </div>
           <h1 className="auth-title">
             {mode === 'login' ? 'Sign in' : mode === 'signup' ? 'Create Account' : 'Reset password'}
           </h1>
           <p className="auth-subtitle">
-            {mode === 'login' && 'Access your food budget and expense tracker'}
-            {mode === 'signup' && 'Start tracking your daily food expenses easily'}
+            {mode === 'login' && 'Access your budget and expense tracker'}
+            {mode === 'signup' && 'Start tracking your daily expenses easily'}
             {mode === 'forgot' && 'Recover access to your Pocket Khorcha account'}
           </p>
         </div>

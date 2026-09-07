@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PocketMoneyIcon } from './PocketLogo';
 
 export const LoadingBar = ({
   appName = "Pocket Khorcha",
@@ -84,7 +85,10 @@ export const LoadingBar = ({
   const content = (
     <div className="water-loader-content">
       {/* App Branding Header */}
-      <div className="water-loader-brand">
+      <div className="water-loader-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ marginBottom: '0.6rem' }}>
+          <PocketMoneyIcon size={52} />
+        </div>
         <h1 className="water-loader-app-title">
           {appName}<span className="accent">.</span>
         </h1>

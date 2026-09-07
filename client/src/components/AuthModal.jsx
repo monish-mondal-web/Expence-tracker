@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
+import { PocketMoneyIcon } from './PocketLogo';
 import { X, Lock, Mail, User, KeyRound } from 'lucide-react';
 
 export const AuthModal = () => {
@@ -124,18 +125,21 @@ export const AuthModal = () => {
   return (
     <div className="modal-overlay" onClick={closeAuthModal}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
-        <div className="modal-header" style={{ marginBottom: '1.25rem' }}>
-          <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>
-              {authModalTab === 'login' && 'Welcome to FinFood'}
-              {authModalTab === 'register' && 'Create Your Account'}
-              {authModalTab === 'forgot' && 'Reset Password'}
-            </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              {authModalTab === 'login' && 'Sign in to access your personal food budget'}
-              {authModalTab === 'register' && 'Start tracking your monthly food expenses'}
-              {authModalTab === 'forgot' && 'Recover access to your account'}
-            </span>
+        <div className="modal-header" style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <PocketMoneyIcon size={36} />
+            <div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0 }}>
+                {authModalTab === 'login' && 'Welcome to Pocket Khorcha'}
+                {authModalTab === 'register' && 'Create Your Account'}
+                {authModalTab === 'forgot' && 'Reset Password'}
+              </h3>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                {authModalTab === 'login' && 'Sign in to access your personal budget'}
+                {authModalTab === 'register' && 'Start tracking your monthly expenses'}
+                {authModalTab === 'forgot' && 'Recover access to your account'}
+              </span>
+            </div>
           </div>
           <button type="button" className="modal-close-btn" onClick={closeAuthModal}>
             <X size={18} />
