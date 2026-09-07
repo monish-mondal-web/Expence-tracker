@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { X, Lock, Mail, User, KeyRound, CheckCircle2, ArrowRight } from 'lucide-react';
+import { X, Lock, Mail, User, KeyRound } from 'lucide-react';
 
 export const AuthModal = () => {
   const {
@@ -30,6 +30,7 @@ export const AuthModal = () => {
   const [receivedCodeBanner, setReceivedCodeBanner] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
+  const [emailSentStatus, setEmailSentStatus] = useState(false);
 
   if (!isAuthModalOpen) return null;
 
@@ -69,8 +70,6 @@ export const AuthModal = () => {
       setIsLoading(false);
     }
   };
-
-  const [emailSentStatus, setEmailSentStatus] = useState(false);
 
   const handleForgotRequest = async (e) => {
     e.preventDefault();

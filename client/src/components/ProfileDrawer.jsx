@@ -166,7 +166,7 @@ export const ProfileDrawer = ({ isOpen, onClose }) => {
           </button>
 
           <p className="profile-footer-copy">
-            FinFood Tracker &bull; 100% Real Database Mode
+            Pocket Khorcha &bull; Track. Spend. Save.
           </p>
         </div>
       </aside>

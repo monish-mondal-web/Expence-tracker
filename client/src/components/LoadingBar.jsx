@@ -1,15 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export const LoadingBar = ({
-  appName = "FinFood",
-  subtitle = "Smart Food Budget & Expense Tracker",
-  message = "Loading your food budget...",
+  appName = "Pocket Khorcha",
+  subtitle = "Track. Spend. Save.",
+  message = "Loading your expenses...",
   progress: externalProgress,
+  isReady = true,
   fullScreen = true,
   onComplete,
 }) => {
   const [internalProgress, setInternalProgress] = useState(externalProgress ?? 0);
   const [isFadingOut, setIsFadingOut] = useState(false);
+
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  const isReadyRef = useRef(isReady);
+  useEffect(() => {
+    isReadyRef.current = isReady;
+  }, [isReady]);
 
   useEffect(() => {
     if (externalProgress !== undefined) {
@@ -17,7 +28,7 @@ export const LoadingBar = ({
       if (externalProgress >= 100) {
         setIsFadingOut(true);
         const timer = setTimeout(() => {
-          onComplete?.();
+          onCompleteRef.current?.();
         }, 300);
         return () => clearTimeout(timer);
       }
@@ -31,6 +42,12 @@ export const LoadingBar = ({
           clearInterval(interval);
           return 100;
         }
+
+        // If not ready yet from backend/auth, hold gently at 92% until isReady
+        if (!isReadyRef.current && prev >= 92) {
+          return 92;
+        }
+
         let step = 2;
         if (prev < 30) step = 3;
         else if (prev < 70) step = 2;
@@ -42,7 +59,7 @@ export const LoadingBar = ({
     }, 28);
 
     return () => clearInterval(interval);
-  }, [externalProgress, onComplete]);
+  }, [externalProgress]);
 
   // When 100% is reached, smoothly trigger onComplete callback
   useEffect(() => {
@@ -52,7 +69,7 @@ export const LoadingBar = ({
       }, 180);
 
       const doneTimer = setTimeout(() => {
-        onComplete?.();
+        onCompleteRef.current?.();
       }, 480);
 
       return () => {
@@ -60,7 +77,7 @@ export const LoadingBar = ({
         clearTimeout(doneTimer);
       };
     }
-  }, [internalProgress, externalProgress, onComplete]);
+  }, [internalProgress, externalProgress]);
 
   const currentProgress = externalProgress !== undefined ? externalProgress : internalProgress;
 
@@ -110,7 +127,7 @@ export const LoadingBar = ({
           />
         </div>
         <p className="water-loader-status-msg">
-          {currentProgress >= 100 ? "Ready! Opening FinFood..." : message}
+          {currentProgress >= 100 ? `Ready! Opening ${appName}...` : message}
         </p>
       </div>
     </div>

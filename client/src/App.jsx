@@ -16,13 +16,14 @@ const AppContent = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [isAnimationComplete, setIsAnimationComplete] = useState(false);
 
-  // App opens ONLY after the water loading animation has completed (100%)
-  if (!isAnimationComplete || isLoading) {
+  // App opens ONLY after the water loading animation has completed (100%) and initial load is ready
+  if (!isAnimationComplete) {
     return (
       <LoadingBar
-        appName="FinFood"
-        subtitle="Smart Food Budget & Expense Tracker"
-        message="Loading your smart food budget..."
+        appName="Pocket Khorcha"
+        subtitle="Track. Spend. Save."
+        message="Loading your expenses..."
+        isReady={!isLoading}
         onComplete={() => setIsAnimationComplete(true)}
       />
     );

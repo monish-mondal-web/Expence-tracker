@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { formatCurrency } from '../utils/currency';
 import {
-  Utensils,
+  ArrowUpRight,
   Pencil,
   CalendarDays,
   TrendingUp,
   ShieldCheck,
   ChevronDown,
+  Utensils,
 } from 'lucide-react';
 
 export const MainBudgetCard = ({
@@ -33,13 +34,9 @@ export const MainBudgetCard = ({
   const remainingBudget = data?.remainingBudget || 0;
   const remainingDays = data?.remainingDays !== undefined ? data.remainingDays : 0;
   const dynamicSafeDailyBudget = data?.dynamicSafeDailyBudget || 0;
-  const dynamicDailyBudget = data?.dynamicDailyBudget || 0;
   const safeDailyBudget = data?.safeDailyBudget || 0;
   const effectiveSafeDaily = dynamicSafeDailyBudget || safeDailyBudget || 0;
   const todaySpent = data?.todaySpent || 0;
-  const safeZoneStatus = data?.safeZoneStatus || '';
-  const safeZoneKey = data?.safeZoneKey || 'safe';
-  const smartMessage = data?.smartMessage || '';
 
   // Remaining in today's daily limit (negative if over limit)
   const safeRemainingToday =
@@ -57,12 +54,6 @@ export const MainBudgetCard = ({
   // Dynamic average spend per day (distinct metric)
   const yourAverage =
     data?.averageDailySpend || (daysElapsed > 0 ? Math.round(totalSpent / daysElapsed) : 0);
-
-  // Expected spending paced evenly over the month (distinct metric)
-  const expectedSpending = budget > 0 ? Math.round((budget / daysInMonth) * daysElapsed) : 0;
-  const diffFromExpected = expectedSpending - totalSpent;
-  const isUnderExpected = diffFromExpected >= 0;
-  const underExpectedAmount = Math.abs(diffFromExpected);
 
   // Dynamic percentages
   const spentPercent = budget > 0 ? Math.min(100, Math.round((totalSpent / budget) * 100)) : 0;

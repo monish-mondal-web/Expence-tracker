@@ -7,11 +7,8 @@ import {
   User,
   Eye,
   EyeOff,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
   KeyRound,
-  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 
 export const CARTOON_AVATAR_PRESETS = [
@@ -148,7 +145,7 @@ export const AuthScreen = () => {
           <p className="auth-subtitle">
             {mode === 'login' && 'Access your food budget and expense tracker'}
             {mode === 'signup' && 'Start tracking your daily food expenses easily'}
-            {mode === 'forgot' && 'Recover access to your FinFood account'}
+            {mode === 'forgot' && 'Recover access to your Pocket Khorcha account'}
           </p>
         </div>
 
