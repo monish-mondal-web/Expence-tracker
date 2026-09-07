@@ -73,18 +73,16 @@ export const AppProvider = ({ children }) => {
   const [dashboardData, setDashboardData] = useState(null);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
 
-  // Spaces management
-  const [activeSpace, setActiveSpaceState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('pk_active_space') || 'Food & Dining';
-    }
-    return 'Food & Dining';
-  });
+  // Spaces management - defaults to 'Food & Dining' on every page refresh/reload
+  const [activeSpace, setActiveSpaceState] = useState('Food & Dining');
 
   const setActiveSpace = useCallback((space) => {
     setActiveSpaceState(space);
+  }, []);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('pk_active_space', space);
+      localStorage.removeItem('pk_active_space');
     }
   }, []);
 

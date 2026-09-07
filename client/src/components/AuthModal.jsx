@@ -15,7 +15,7 @@ export const AuthModal = () => {
     resetPassword,
   } = useAuth();
 
-  const { showToast, triggerRefresh } = useApp();
+  const { showToast, triggerRefresh, openSetBudget } = useApp();
 
   // Form states
   const [name, setName] = useState('');
@@ -64,6 +64,10 @@ export const AuthModal = () => {
       showToast('Account created successfully!');
       triggerRefresh();
       closeAuthModal();
+      // Right after account creation, open Set Monthly Budget modal immediately for quick setup
+      setTimeout(() => {
+        openSetBudget();
+      }, 350);
     } catch (err) {
       showToast(err.message || 'Registration failed.', 'error');
     } finally {

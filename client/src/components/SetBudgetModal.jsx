@@ -187,6 +187,14 @@ export const SetBudgetModal = () => {
   const monthNames = getMonthNames();
   const activeCategoryEntries = Object.keys(categoryBudgetsMap);
 
+  const activeBudgetedCategories = Object.entries(categoryBudgetsMap).filter(
+    ([_, amt]) => Number(amt) > 0
+  );
+  const isOnlyFoodBudgeted =
+    activeBudgetedCategories.length === 1 &&
+    activeBudgetedCategories[0][0].toLowerCase().includes('food');
+  const isZeroBudgeted = activeBudgetedCategories.length === 0;
+
   return (
     <div className="modal-overlay" onClick={closeSetBudget}>
       <div
@@ -253,6 +261,74 @@ export const SetBudgetModal = () => {
                 />
               </div>
             </div>
+
+            {/* Friendly suggestion banner when user only has Food budgeted */}
+            {isOnlyFoodBudgeted && (
+              <div
+                style={{
+                  background: '#FFFBEB',
+                  border: '1px solid #FDE68A',
+                  borderRadius: '12px',
+                  padding: '0.75rem 0.9rem',
+                  marginBottom: '1.1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                }}
+              >
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#FEF3C7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sparkles size={16} color="#D97706" />
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#92400E', lineHeight: 1.4 }}>
+                  <strong>Add your other spaces!</strong> You’ve set a budget for Food & Dining. Select Room Rent, Gym, Travel, or custom spaces below to manage all your expenses smoothly.
+                </div>
+              </div>
+            )}
+
+            {/* Welcome banner when no budget is set yet */}
+            {isZeroBudgeted && (
+              <div
+                style={{
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: '12px',
+                  padding: '0.75rem 0.9rem',
+                  marginBottom: '1.1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.65rem',
+                }}
+              >
+                <div
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: '#DCFCE7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sparkles size={16} color="#15803D" />
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#166534', lineHeight: 1.4 }}>
+                  <strong>Welcome! Set your monthly budget</strong> to activate live daily safe limits and pace tracking. Pick categories below or tap "Add Popular"!
+                </div>
+              </div>
+            )}
 
             {/* Live Total Header Banner */}
             <div
