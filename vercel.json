@@ -19,7 +19,7 @@
       "dest": "server/server.js"
     },
     {
-      "src": "/(assets/.*|favicon.*|icons.*|robots.txt|manifest.json|.*\\.[a-zA-Z0-9]+)",
+      "src": "/(assets/.*|favicon.*|icons.*|robots.txt|manifest.json|sw.js|.*\\.[a-zA-Z0-9]+)",
       "dest": "client/$1"
     },
     {

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { toLocalISODate } from '../utils/date';
 import { api } from '../services/api';
+import { onSyncChange, getPendingSyncCount } from '../services/offlineStorage';
 
 const AppContext = createContext();
 
@@ -9,6 +10,11 @@ export const AppProvider = ({ children }) => {
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [todayDate] = useState(toLocalISODate(now));
+
+  // Network & Sync State
+  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
   const getTabFromPath = () => {
     if (typeof window === 'undefined') return 'dashboard';
@@ -120,15 +126,51 @@ export const AppProvider = ({ children }) => {
     setRefreshKey((k) => k + 1);
   }, []);
 
-  // Fetch dashboard data
+  // Listen to Network status & Sync events
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      showToast('Back online! Syncing data...', 'success');
+      api.syncPendingData();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      showToast('Offline mode — changes saved locally', 'info');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const unsubscribeSync = onSyncChange((status) => {
+      if (status.isSyncing !== undefined) setIsSyncing(status.isSyncing);
+      if (status.pendingCount !== undefined) setPendingSyncCount(status.pendingCount);
+    });
+
+    const unsubscribeCompleted = api.onSyncCompleted((count) => {
+      showToast(`Synced ${count} offline change${count > 1 ? 's' : ''} to server`, 'success');
+      triggerRefresh();
+    });
+
+    getPendingSyncCount().then((count) => setPendingSyncCount(count));
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      unsubscribeSync();
+      unsubscribeCompleted();
+    };
+  }, [showToast, triggerRefresh]);
+
+  // Fetch dashboard data (with offline cache recovery)
   const loadDashboard = useCallback(async () => {
     try {
       const res = await api.getDashboard(currentMonth, currentYear, todayDate, activeSpace);
-      if (res.success) {
+      if (res && res.data) {
         setDashboardData(res.data);
       }
     } catch (err) {
-      console.error('Failed to load dashboard data:', err);
+      console.warn('Dashboard fetch error (checking local cache):', err);
     } finally {
       setIsDashboardLoading(false);
     }
@@ -142,11 +184,11 @@ export const AppProvider = ({ children }) => {
   const loadCategories = useCallback(async () => {
     try {
       const res = await api.getCategories();
-      if (res.success && res.data) {
+      if (res && res.data) {
         setCategories(res.data);
       }
     } catch (err) {
-      console.error('Failed to load categories:', err);
+      console.warn('Categories fetch error:', err);
     }
   }, []);
 
@@ -220,7 +262,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // -------------------------------------------------------------
-  // OPTIMISTIC UI ACTIONS (Instant UI update -> Background sync)
+  // OPTIMISTIC & OFFLINE RESILIENT UI ACTIONS
   // -------------------------------------------------------------
   const addExpenseOptimistic = async (payload) => {
     const tempId = `temp_${Date.now()}`;
@@ -270,19 +312,23 @@ export const AppProvider = ({ children }) => {
       };
     });
 
-    showToast('Expense added');
     closeAddExpense();
 
-    // 2. BACKGROUND SERVER SYNC
+    // 2. BACKGROUND SERVER SYNC OR OFFLINE QUEUE
     try {
       const res = await api.createExpense(payload);
-      if (res.success && res.data) {
-        // Swap temp ID with real DB ID
+      if (res && res._isOffline) {
+        showToast('Saved offline. Will auto-sync when online.', 'info');
+      } else {
+        showToast('Expense added successfully');
+      }
+
+      if (res && res.data && res.data._id) {
         setDashboardData((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
-            recentExpenses: prev.recentExpenses.map((e) =>
+            recentExpenses: (prev.recentExpenses || []).map((e) =>
               e._id === tempId ? res.data : e
             ),
           };
@@ -290,8 +336,8 @@ export const AppProvider = ({ children }) => {
       }
       triggerRefresh();
     } catch (err) {
-      showToast(err.message || 'Failed to save expense. Rolling back.', 'error');
-      triggerRefresh();
+      console.error('Expense addition error:', err);
+      showToast('Error saving expense, kept in local session.', 'error');
     }
   };
 
@@ -328,19 +374,22 @@ export const AppProvider = ({ children }) => {
         safeRemainingToday: effectiveLimit - updatedToday,
         safeZoneKey: safeKey,
         safeZoneStatus: safeStatus,
-        recentExpenses: prev.recentExpenses.filter((e) => e._id !== expense._id),
+        recentExpenses: (prev.recentExpenses || []).filter((e) => e._id !== expense._id),
       };
     });
 
-    showToast('Expense deleted');
-
-    // 2. BACKGROUND SERVER SYNC
+    // 2. BACKGROUND SERVER SYNC OR OFFLINE QUEUE
     try {
-      await api.deleteExpense(expense._id);
+      const res = await api.deleteExpense(expense._id);
+      if (res && res._isOffline) {
+        showToast('Deleted offline. Will sync when online.', 'info');
+      } else {
+        showToast('Expense deleted');
+      }
       triggerRefresh();
     } catch (err) {
-      showToast(err.message || 'Failed to delete on server', 'error');
-      triggerRefresh();
+      console.error('Delete expense error:', err);
+      showToast('Error deleting on server, removed locally.', 'error');
     }
   };
 
@@ -371,16 +420,20 @@ export const AppProvider = ({ children }) => {
       };
     });
 
-    showToast('Budget saved successfully');
     closeSetBudget();
 
-    // 2. BACKGROUND SERVER SYNC
+    // 2. BACKGROUND SERVER SYNC OR OFFLINE QUEUE
     try {
-      await api.setBudget({ budgetAmount: num, categoryBudgets, month, year });
+      const res = await api.setBudget({ budgetAmount: num, categoryBudgets, month, year });
+      if (res && res._isOffline) {
+        showToast('Budget saved offline. Will auto-sync when online.', 'info');
+      } else {
+        showToast('Budget saved successfully');
+      }
       triggerRefresh();
     } catch (err) {
-      showToast(err.message || 'Failed to sync budget to server', 'error');
-      triggerRefresh();
+      console.error('Budget sync error:', err);
+      showToast('Failed to sync budget to server, kept locally.', 'error');
     }
   };
 
@@ -399,22 +452,30 @@ export const AppProvider = ({ children }) => {
       };
     });
 
-    showToast('Monthly budget reset');
-
     try {
+      let res;
       if (budgetId) {
-        await api.resetBudget(budgetId);
+        res = await api.resetBudget(budgetId);
+      }
+      if (res && res._isOffline) {
+        showToast('Monthly budget reset offline', 'info');
+      } else {
+        showToast('Monthly budget reset');
       }
       triggerRefresh();
     } catch (err) {
-      showToast(err.message || 'Failed to reset budget', 'error');
-      triggerRefresh();
+      console.error('Budget reset error:', err);
+      showToast('Reset locally.', 'error');
     }
   };
 
   return (
     <AppContext.Provider
       value={{
+        isOnline,
+        isSyncing,
+        pendingSyncCount,
+        syncNow: api.syncPendingData,
         currentMonth,
         currentYear,
         setCurrentMonth,
