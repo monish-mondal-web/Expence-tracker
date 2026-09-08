@@ -10,7 +10,6 @@ import { ExpensesPage } from './pages/ExpensesPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { CalendarPage } from './pages/CalendarPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { NetworkStatusBanner } from './components/NetworkStatusBanner';
 
 const AppContent = () => {
   const { activeTab } = useApp();
@@ -41,16 +40,13 @@ const AppContent = () => {
   }
 
   return (
-    <>
-      <NetworkStatusBanner />
-      <MainLayout>
-        {activeTab === 'dashboard' && <DashboardPage />}
-        {activeTab === 'expenses' && <ExpensesPage />}
-        {(activeTab === 'budget' || activeTab === 'analytics') && <AnalyticsPage />}
-        {activeTab === 'calendar' && <CalendarPage />}
-        {activeTab === 'settings' && <SettingsPage />}
-      </MainLayout>
-    </>
+    <MainLayout>
+      {activeTab === 'dashboard' && <DashboardPage />}
+      {activeTab === 'expenses' && <ExpensesPage />}
+      {(activeTab === 'budget' || activeTab === 'analytics') && <AnalyticsPage />}
+      {activeTab === 'calendar' && <CalendarPage />}
+      {activeTab === 'settings' && <SettingsPage />}
+    </MainLayout>
   );
 };
 

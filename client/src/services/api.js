@@ -41,6 +41,276 @@ function isNetworkError(err) {
   );
 }
 
+// -------------------------------------------------------------
+// OFFLINE SYNTHESIS ENGINES (Calculates accurate data from IndexedDB)
+// -------------------------------------------------------------
+
+// 1. Synthesize Expenses list with Search, Category filter, and Sorting
+async function assembleOfflineExpenses(urlPath) {
+  try {
+    const url = new URL(urlPath, 'http://localhost');
+    const month = Number(url.searchParams.get('month'));
+    const year = Number(url.searchParams.get('year'));
+    const category = url.searchParams.get('category');
+    const search = url.searchParams.get('search');
+    const sort = url.searchParams.get('sort') || 'newest';
+
+    let expenses = await getAllOfflineExpenses();
+
+    if (month && year) {
+      expenses = expenses.filter((e) => {
+        const d = new Date(e.date);
+        return d.getMonth() + 1 === month && d.getFullYear() === year;
+      });
+    }
+
+    if (category && category !== 'All') {
+      const catLower = category.toLowerCase().trim();
+      expenses = expenses.filter((e) => {
+        const eCat = (e.category || '').toLowerCase().trim();
+        return eCat === catLower || eCat.includes(catLower);
+      });
+    }
+
+    if (search && search.trim()) {
+      const term = search.toLowerCase().trim();
+      expenses = expenses.filter((e) => {
+        return (
+          (e.note || '').toLowerCase().includes(term) ||
+          (e.category || '').toLowerCase().includes(term)
+        );
+      });
+    }
+
+    if (sort === 'oldest') {
+      expenses.sort((a, b) => new Date(a.date) - new Date(b.date));
+    } else if (sort === 'amount_desc') {
+      expenses.sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0));
+    } else if (sort === 'amount_asc') {
+      expenses.sort((a, b) => (Number(a.amount) || 0) - (Number(b.amount) || 0));
+    } else {
+      expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    const totalAmount = expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    return {
+      success: true,
+      data: expenses,
+      totalAmount,
+      _fromCache: true,
+      _isOffline: true,
+    };
+  } catch (e) {
+    const local = await getAllOfflineExpenses();
+    return { success: true, data: local, totalAmount: 0, _isOffline: true };
+  }
+}
+
+// 2. Synthesize Calendar Matrix and daily spending
+async function assembleOfflineCalendar(urlPath) {
+  try {
+    const url = new URL(urlPath, 'http://localhost');
+    const now = new Date();
+    const month = Number(url.searchParams.get('month')) || now.getMonth() + 1;
+    const year = Number(url.searchParams.get('year')) || now.getFullYear();
+
+    const allExpenses = await getAllOfflineExpenses();
+    const monthExpenses = allExpenses.filter((e) => {
+      const d = new Date(e.date);
+      return d.getMonth() + 1 === month && d.getFullYear() === year;
+    });
+
+    const daysMap = {};
+    monthExpenses.forEach((e) => {
+      const d = new Date(e.date);
+      const dateKey = d.toISOString().slice(0, 10);
+      if (!daysMap[dateKey]) {
+        daysMap[dateKey] = {
+          date: dateKey,
+          day: d.getDate(),
+          totalSpent: 0,
+          expenses: [],
+        };
+      }
+      daysMap[dateKey].totalSpent += Number(e.amount) || 0;
+      daysMap[dateKey].expenses.push({
+        _id: e._id,
+        amount: e.amount,
+        category: e.category,
+        note: e.note,
+        date: e.date,
+      });
+    });
+
+    Object.values(daysMap).forEach((item) => {
+      item.totalSpent = Math.round(item.totalSpent * 100) / 100;
+    });
+
+    const totalSpent = monthExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    return {
+      success: true,
+      month,
+      year,
+      totalSpent: Math.round(totalSpent * 100) / 100,
+      daysWithExpenses: Object.keys(daysMap).length,
+      calendarDays: daysMap,
+      _fromCache: true,
+      _isOffline: true,
+    };
+  } catch (e) {
+    return { success: true, totalSpent: 0, daysWithExpenses: 0, calendarDays: {}, _isOffline: true };
+  }
+}
+
+// 3. Synthesize Analytics and Charts
+async function assembleOfflineAnalytics(urlPath) {
+  try {
+    const url = new URL(urlPath, 'http://localhost');
+    const now = new Date();
+    const month = Number(url.searchParams.get('month')) || now.getMonth() + 1;
+    const year = Number(url.searchParams.get('year')) || now.getFullYear();
+
+    const allExpenses = await getAllOfflineExpenses();
+    const monthExpenses = allExpenses.filter((e) => {
+      const d = new Date(e.date);
+      return d.getMonth() + 1 === month && d.getFullYear() === year;
+    });
+
+    const totalSpent = monthExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    // Read cached budget or default
+    const cachedDash = await getCachedData(`/dashboard?month=${month}&year=${year}`);
+    const monthlyBudget = cachedDash?.monthlyBudget || 3000;
+    const remainingBudget = Math.max(0, monthlyBudget - totalSpent);
+    const budgetUsedPercentage = monthlyBudget > 0 ? Math.min(100, Math.round((totalSpent / monthlyBudget) * 100)) : 0;
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const elapsedDays = Math.max(1, Math.min(now.getDate(), daysInMonth));
+    const remainingDays = Math.max(0, daysInMonth - elapsedDays);
+    const averageDailySpend = Math.round(totalSpent / elapsedDays);
+    const safeDailyBudget = remainingDays > 0 ? Math.round(remainingBudget / remainingDays) : 0;
+
+    // Daily Chart Data
+    const dailyMap = {};
+    for (let d = 1; d <= daysInMonth; d++) {
+      dailyMap[d] = 0;
+    }
+    monthExpenses.forEach((e) => {
+      const d = new Date(e.date).getDate();
+      if (dailyMap[d] !== undefined) {
+        dailyMap[d] += Number(e.amount) || 0;
+      }
+    });
+
+    const dailyChartData = Object.keys(dailyMap).map((d) => ({
+      day: Number(d),
+      amount: Math.round(dailyMap[d] * 100) / 100,
+      safeLimit: safeDailyBudget,
+    }));
+
+    // Category Breakdown
+    const catMap = {};
+    monthExpenses.forEach((e) => {
+      const c = e.category || 'Food & Dining';
+      if (!catMap[c]) catMap[c] = { category: c, total: 0, count: 0 };
+      catMap[c].total += Number(e.amount) || 0;
+      catMap[c].count += 1;
+    });
+
+    const categoryBreakdown = Object.values(catMap).map((c) => ({
+      category: c.category,
+      total: Math.round(c.total * 100) / 100,
+      count: c.count,
+      percentage: totalSpent > 0 ? Math.round((c.total / totalSpent) * 100) : 0,
+    }));
+
+    let peakDay = null;
+    let maxSpent = 0;
+    Object.keys(dailyMap).forEach((d) => {
+      if (dailyMap[d] > maxSpent) {
+        maxSpent = dailyMap[d];
+        peakDay = { day: Number(d), amount: maxSpent };
+      }
+    });
+
+    return {
+      success: true,
+      data: {
+        month,
+        year,
+        monthlyBudget,
+        totalSpent: Math.round(totalSpent * 100) / 100,
+        remainingBudget: Math.round(remainingBudget * 100) / 100,
+        budgetUsedPercentage,
+        averageDailySpend,
+        safeDailyBudget,
+        daysTracked: Object.keys(dailyMap).filter((d) => dailyMap[d] > 0).length,
+        remainingDays,
+        dailyChartData,
+        categoryBreakdown,
+        peakDay,
+      },
+      _fromCache: true,
+      _isOffline: true,
+    };
+  } catch (e) {
+    return {
+      success: true,
+      data: { monthlyBudget: 0, totalSpent: 0, remainingBudget: 0, dailyChartData: [], categoryBreakdown: [] },
+      _isOffline: true,
+    };
+  }
+}
+
+// 4. Default categories for offline use
+function assembleOfflineCategories() {
+  return {
+    success: true,
+    data: [
+      { _id: 'cat_1', name: 'Breakfast', icon: 'Coffee', color: '#F59E0B' },
+      { _id: 'cat_2', name: 'Lunch', icon: 'Utensils', color: '#10B981' },
+      { _id: 'cat_3', name: 'Dinner', icon: 'Moon', color: '#6366F1' },
+      { _id: 'cat_4', name: 'Snacks', icon: 'Cookie', color: '#EC4899' },
+      { _id: 'cat_5', name: 'Groceries', icon: 'ShoppingBag', color: '#06B6D4' },
+      { _id: 'cat_6', name: 'Meat / Fish', icon: 'Fish', color: '#EF4444' },
+    ],
+    _fromCache: true,
+    _isOffline: true,
+  };
+}
+
+// Fallback router for any offline GET endpoint
+async function resolveOfflineGet(endpoint) {
+  const cached = await getCachedData(endpoint);
+  if (cached) {
+    return { ...cached, _fromCache: true, _isOffline: true };
+  }
+
+  if (endpoint.startsWith('/expenses')) {
+    return assembleOfflineExpenses(endpoint);
+  }
+  if (endpoint.startsWith('/calendar')) {
+    return assembleOfflineCalendar(endpoint);
+  }
+  if (endpoint.startsWith('/analytics')) {
+    return assembleOfflineAnalytics(endpoint);
+  }
+  if (endpoint.startsWith('/categories')) {
+    return assembleOfflineCategories();
+  }
+  if (endpoint.startsWith('/monthly-budget')) {
+    return {
+      success: true,
+      data: { budgetAmount: 3000, categoryBudgets: [] },
+      _isOffline: true,
+    };
+  }
+
+  return null;
+}
+
 // Core request handler with offline fallback & queueing
 async function request(endpoint, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
@@ -59,16 +329,16 @@ async function request(endpoint, options = {}) {
   };
 
   // -----------------------------------------------------------
-  // 1. GET Requests: Stale-While-Revalidate / Offline Cache
+  // 1. GET Requests: Stale-While-Revalidate / Full Offline Engine
   // -----------------------------------------------------------
   if (method === 'GET') {
     const cacheKey = endpoint;
 
-    // If completely offline, immediately return cached response
+    // If completely offline, immediately synthesize or return cached response
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      const cached = await getCachedData(cacheKey);
-      if (cached) {
-        return { ...cached, _fromCache: true, _isOffline: true };
+      const offlineResult = await resolveOfflineGet(endpoint);
+      if (offlineResult) {
+        return offlineResult;
       }
     }
 
@@ -90,27 +360,11 @@ async function request(endpoint, options = {}) {
 
       return data;
     } catch (err) {
-      // If network failed or timed out, attempt cache recovery
+      // If network failed or timed out, attempt offline cache/synthesis
       if (isNetworkError(err)) {
-        const cached = await getCachedData(cacheKey);
-        if (cached) {
-          console.warn(`Network unavailable for ${endpoint}. Serving from offline cache.`);
-          return { ...cached, _fromCache: true, _isOffline: true };
-        }
-
-        // Fallback: If expenses query has no exact cache match, assemble from local offline store
-        if (endpoint.startsWith('/expenses')) {
-          const localExpenses = await getAllOfflineExpenses();
-          if (localExpenses && localExpenses.length > 0) {
-            const total = localExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-            return {
-              success: true,
-              data: localExpenses,
-              totalAmount: total,
-              _fromCache: true,
-              _isOffline: true,
-            };
-          }
+        const offlineResult = await resolveOfflineGet(endpoint);
+        if (offlineResult) {
+          return offlineResult;
         }
       }
       throw err;
@@ -131,7 +385,6 @@ async function request(endpoint, options = {}) {
     const data = await res.json();
 
     if (!res.ok) {
-      // 401 Unauthorized should throw directly (handled by AuthContext)
       if (res.status === 401) {
         throw new Error(data.error || 'Unauthorized');
       }
@@ -140,9 +393,7 @@ async function request(endpoint, options = {}) {
 
     return data;
   } catch (err) {
-    // If it's a network issue (slow connection, disconnected mid-request), queue for offline sync!
     if (isNetworkError(err)) {
-      console.warn(`Network failed during mutation (${method} ${endpoint}). Queuing offline mutation.`);
       return handleOfflineMutation(endpoint, method, options);
     }
     throw err;
@@ -339,13 +590,11 @@ export async function syncPendingData() {
         await removeSyncQueueItem(item.id);
         syncedCount++;
       } else if (res.status === 404 && item.type === 'DELETE_EXPENSE') {
-        // Item already deleted on server, safely dequeue
         await removeSyncQueueItem(item.id);
         syncedCount++;
       }
     } catch (err) {
-      console.warn(`Sync item #${item.id} failed, will retry on next connection:`, err);
-      break; // Stop loop and keep remaining queue for next retry
+      break;
     }
   }
 
@@ -369,13 +618,11 @@ export async function syncPendingData() {
 // Auto-trigger sync on online event and periodic check
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    console.log('Network connection restored. Starting background sync...');
     setTimeout(() => {
       syncPendingData();
     }, 1200);
   });
 
-  // Periodic interval check
   setInterval(() => {
     if (navigator.onLine && !isSyncInProgress) {
       getPendingSyncCount().then((count) => {
