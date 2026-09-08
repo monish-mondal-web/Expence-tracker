@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pocket-khorcha-v1';
+const CACHE_NAME = 'pocket-khorcha-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -63,9 +63,11 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(async () => {
-          const cached = await caches.match(request);
+          const cached = await caches.match(request, { ignoreSearch: true });
           if (cached) return cached;
-          return caches.match('/index.html');
+          const indexCached = await caches.match('/index.html', { ignoreSearch: true });
+          if (indexCached) return indexCached;
+          return caches.match('/', { ignoreSearch: true });
         })
     );
     return;
@@ -73,7 +75,7 @@ self.addEventListener('fetch', (event) => {
 
   // 4. Static assets (JS, CSS, fonts, images)
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
+    caches.match(request, { ignoreSearch: true }).then((cachedResponse) => {
       if (cachedResponse) {
         // Fetch in background to update cache for next time
         fetch(request)
@@ -99,11 +101,17 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => {
+        .catch(async () => {
+          // Fallback matching by clean pathname without query strings
+          const pathMatch = await caches.match(url.pathname, { ignoreSearch: true });
+          if (pathMatch) return pathMatch;
+
           // Fallback for failed image/svg if offline
           if (request.destination === 'image') {
-            return caches.match('/favicon.svg');
+            return caches.match('/favicon.svg', { ignoreSearch: true });
           }
+
+          return new Response('', { status: 408, statusText: 'Offline Asset Unavailable' });
         });
     })
   );

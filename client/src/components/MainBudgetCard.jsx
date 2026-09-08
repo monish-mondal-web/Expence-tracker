@@ -65,7 +65,7 @@ export const MainBudgetCard = ({
   // Determine if viewing a specific space or all spaces
   const isSpaceMode = activeSpace && activeSpace !== 'All';
   const spaceObj = isSpaceMode
-    ? (data?.spaces?.find((s) => s.name.toLowerCase() === activeSpace.toLowerCase()) || data?.activeSpaceData)
+    ? (data?.spaces?.find((s) => s?.name && activeSpace && s.name.toLowerCase() === activeSpace.toLowerCase()) || data?.activeSpaceData)
     : null;
 
   const cardTitle = isSpaceMode ? `${activeSpace} Budget` : 'Monthly Budget';

@@ -5,6 +5,7 @@ import { MainLayout } from './layouts/MainLayout';
 import { AuthScreen } from './components/AuthScreen';
 import { LoadingBar } from './components/LoadingBar';
 import { Toast } from './components/Toast';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { DashboardPage } from './pages/DashboardPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
@@ -52,10 +53,12 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppProvider>
+          <AppContent />
+        </AppProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

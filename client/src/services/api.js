@@ -281,6 +281,103 @@ function assembleOfflineCategories() {
   };
 }
 
+// 5. Synthesize Complete Dashboard Response from local offline database
+async function assembleOfflineDashboard(urlPath) {
+  try {
+    const url = new URL(urlPath, 'http://localhost');
+    const now = new Date();
+    const month = Number(url.searchParams.get('month')) || now.getMonth() + 1;
+    const year = Number(url.searchParams.get('year')) || now.getFullYear();
+    const today = url.searchParams.get('today') || now.toISOString().slice(0, 10);
+    const space = url.searchParams.get('space') || 'Food & Dining';
+
+    // Check if any recent cached dashboard exists
+    const cachedAnyDash = (await getCachedData('/dashboard')) || (await getCachedData(urlPath));
+    const cachedData = cachedAnyDash?.data || cachedAnyDash || {};
+    const baseBudget = Number(cachedData.monthlyBudget) || 3000;
+
+    const allExpenses = await getAllOfflineExpenses();
+    const monthExpenses = allExpenses.filter((e) => {
+      const d = new Date(e.date);
+      return d.getMonth() + 1 === month && d.getFullYear() === year;
+    });
+
+    const totalSpent = monthExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    const todaySpent = monthExpenses
+      .filter((e) => (e.date || '').slice(0, 10) === today)
+      .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const currentDay = Math.min(now.getDate(), daysInMonth);
+    const remainingDays = Math.max(1, daysInMonth - currentDay);
+    const remainingBudget = Math.max(0, baseBudget - totalSpent);
+    const safeDailyBudget = remainingDays > 0 ? Math.round((remainingBudget / remainingDays) * 100) / 100 : 0;
+    const dynamicSafeDailyBudget = safeDailyBudget;
+    const safeRemainingToday = Math.round((safeDailyBudget - todaySpent) * 100) / 100;
+
+    // Recent 5 expenses
+    const sorted = [...monthExpenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const recentExpenses = sorted.slice(0, 5);
+
+    // Default spaces
+    const defaultSpaces = [
+      { name: 'Food & Dining', icon: 'Utensils', color: '#10B981', monthlyBudget: baseBudget, totalSpent, remainingBudget, todaySpent, dynamicSafeDailyBudget },
+      { name: 'Household & Maid', icon: 'Brush', color: '#D97706', monthlyBudget: 0, totalSpent: 0, remainingBudget: 0, todaySpent: 0, dynamicSafeDailyBudget: 0 },
+      { name: 'Room Rent', icon: 'Bed', color: '#6366F1', monthlyBudget: 0, totalSpent: 0, remainingBudget: 0, todaySpent: 0, dynamicSafeDailyBudget: 0 },
+      { name: 'Bills & Utilities', icon: 'Lightbulb', color: '#0EA5E9', monthlyBudget: 0, totalSpent: 0, remainingBudget: 0, todaySpent: 0, dynamicSafeDailyBudget: 0 },
+      { name: 'Travel', icon: 'Bike', color: '#F97316', monthlyBudget: 0, totalSpent: 0, remainingBudget: 0, todaySpent: 0, dynamicSafeDailyBudget: 0 },
+    ];
+
+    const spaces = cachedData.spaces && Array.isArray(cachedData.spaces) && cachedData.spaces.length > 0
+      ? cachedData.spaces
+      : defaultSpaces;
+
+    return {
+      success: true,
+      data: {
+        hasBudget: true,
+        monthlyBudget: baseBudget,
+        totalSpent: Math.round(totalSpent * 100) / 100,
+        remainingBudget: Math.round(remainingBudget * 100) / 100,
+        todaySpent: Math.round(todaySpent * 100) / 100,
+        safeDailyBudget,
+        dynamicSafeDailyBudget,
+        safeRemainingToday,
+        remainingDays,
+        recentExpenses,
+        categoryBreakdown: cachedData.categoryBreakdown || [],
+        spaces,
+        month,
+        year,
+        today,
+        smartMessage: 'Offline Mode: Changes saved locally and will auto-sync when online.',
+      },
+      _fromCache: true,
+      _isOffline: true,
+    };
+  } catch (err) {
+    console.error('assembleOfflineDashboard error:', err);
+    return {
+      success: true,
+      data: {
+        hasBudget: true,
+        monthlyBudget: 3000,
+        totalSpent: 0,
+        remainingBudget: 3000,
+        todaySpent: 0,
+        safeDailyBudget: 100,
+        dynamicSafeDailyBudget: 100,
+        safeRemainingToday: 100,
+        remainingDays: 30,
+        recentExpenses: [],
+        categoryBreakdown: [],
+        spaces: [],
+      },
+      _isOffline: true,
+    };
+  }
+}
+
 // Fallback router for any offline GET endpoint
 async function resolveOfflineGet(endpoint) {
   const cached = await getCachedData(endpoint);
@@ -288,6 +385,9 @@ async function resolveOfflineGet(endpoint) {
     return { ...cached, _fromCache: true, _isOffline: true };
   }
 
+  if (endpoint.startsWith('/dashboard')) {
+    return assembleOfflineDashboard(endpoint);
+  }
   if (endpoint.startsWith('/expenses')) {
     return assembleOfflineExpenses(endpoint);
   }
@@ -299,6 +399,15 @@ async function resolveOfflineGet(endpoint) {
   }
   if (endpoint.startsWith('/categories')) {
     return assembleOfflineCategories();
+  }
+  if (endpoint.startsWith('/auth/me')) {
+    try {
+      const localUser = localStorage.getItem('finfood_user');
+      if (localUser) {
+        return { success: true, user: JSON.parse(localUser), _isOffline: true };
+      }
+    } catch (e) {}
+    return { success: true, user: { name: 'User', email: 'user@local' }, _isOffline: true };
   }
   if (endpoint.startsWith('/monthly-budget')) {
     return {
