@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import { CategoryIcon, AVAILABLE_ICONS } from '../components/CategoryIcon';
 import { CARTOON_AVATAR_PRESETS } from '../components/AuthScreen';
 import { Skeleton } from '../components/Skeleton';
+import { PocketMoneyIcon } from '../components/PocketLogo';
 import {
   ArrowUpRight,
   DollarSign,
@@ -17,7 +18,7 @@ import {
   X,
   Link2,
   Check,
-  Sparkles,
+  Info,
 } from 'lucide-react';
 
 const COLOR_SWATCHES = [
@@ -670,8 +671,8 @@ export const SettingsPage = () => {
       <div className="fintech-card" style={{ padding: '1.25rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={16} color="#059669" />
+            <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PocketMoneyIcon size={24} />
             </div>
             <div>
               <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Pocket Khorcha</h3>
@@ -703,7 +704,7 @@ export const SettingsPage = () => {
             borderRadius: '12px',
           }}
         >
-          <Sparkles size={15} color="#059669" />
+          <Info size={16} color="#059669" />
           <span>View What's New in v1.2</span>
         </button>
       </div>
