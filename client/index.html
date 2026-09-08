@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" style="background-color: #0F172A;">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -16,84 +16,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        background-color: #0F172A;
-        color: #FFFFFF;
-        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-        -webkit-tap-highlight-color: transparent;
-      }
-      #initial-app-loader {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justifyContent: center;
-        padding: 1.5rem;
-        background: #0F172A;
-        text-align: center;
-        box-sizing: border-box;
-      }
-      .initial-logo-pulse {
-        width: 60px;
-        height: 60px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.08);
-        display: flex;
-        align-items: center;
-        justifyContent: center;
-        margin-bottom: 1rem;
-        animation: initialPulse 1.8s ease-in-out infinite;
-      }
-      @keyframes initialPulse {
-        0%, 100% { transform: scale(1); opacity: 0.9; }
-        50% { transform: scale(1.05); opacity: 1; }
-      }
-    </style>
   </head>
-  <body style="margin: 0; background-color: #0F172A; color: #FFFFFF;">
-    <div id="root">
-      <!-- Instant Inlined Dark App Shell (Prevents ANY white screen even before scripts run) -->
-      <div id="initial-app-loader">
-        <div class="initial-logo-pulse">
-          <img src="/favicon.svg" alt="Pocket Khorcha" width="40" height="40" style="display:block;" />
-        </div>
-        <h1 style="margin: 0 0 6px; font-size: 1.35rem; font-weight: 800; color: #FFFFFF; letter-spacing: -0.02em;">
-          Pocket Khorcha
-        </h1>
-        <p style="margin: 0; font-size: 0.8rem; color: #94A3B8; font-weight: 500;">
-          Track. Spend. Save.
-        </p>
-      </div>
-    </div>
-
+  <body>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-
-    <script>
-      // Fallback in case module script fails when completely offline
-      window.addEventListener('error', function(e) {
-        if (e && e.target && e.target.tagName === 'SCRIPT') {
-          var loader = document.getElementById('initial-app-loader');
-          if (loader) {
-            loader.innerHTML = `
-              <div style="max-width: 320px; padding: 1.5rem; background: #1E293B; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.4); text-align: center;">
-                <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(16,185,129,0.15); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
-                  <img src="/favicon.svg" width="28" height="28" alt="Logo" />
-                </div>
-                <h3 style="margin: 0 0 8px; font-size: 1.1rem; color: #FFFFFF; font-weight: 700;">Pocket Khorcha Offline</h3>
-                <p style="margin: 0 0 1.25rem; font-size: 0.82rem; color: #94A3B8; line-height: 1.45;">
-                  Please open once with internet to download the latest offline bundle.
-                </p>
-                <button onclick="window.location.reload()" style="width: 100%; padding: 0.75rem; border: none; border-radius: 12px; background: #10B981; color: #FFFFFF; font-weight: 700; cursor: pointer; font-size: 0.9rem;">
-                  Reload App
-                </button>
-              </div>
-            `;
-          }
-        }
-      }, true);
-    </script>
   </body>
 </html>
