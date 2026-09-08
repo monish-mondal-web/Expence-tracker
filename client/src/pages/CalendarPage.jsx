@@ -3,12 +3,13 @@ import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { CalendarView } from '../components/CalendarView';
 import { Skeleton } from '../components/Skeleton';
+import { OfflineFallback } from '../components/OfflineFallback';
 import { formatCurrency } from '../utils/currency';
 import { formatMonthYear } from '../utils/date';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const CalendarPage = () => {
-  const { currentMonth, currentYear, refreshKey, prevMonth, nextMonth } = useApp();
+  const { currentMonth, currentYear, refreshKey, prevMonth, nextMonth, triggerRefresh } = useApp();
 
   const [calendarData, setCalendarData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +42,15 @@ export const CalendarPage = () => {
         <Skeleton height="78px" borderRadius="var(--radius-xl)" />
         <Skeleton height="410px" borderRadius="var(--radius-xl)" />
       </div>
+    );
+  }
+
+  if (!calendarData || !calendarData.calendarDays) {
+    return (
+      <OfflineFallback
+        message="Calendar couldn't be loaded because you're in offline mode and no data is saved yet."
+        onRetry={triggerRefresh}
+      />
     );
   }
 

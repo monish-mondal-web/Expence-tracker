@@ -8,6 +8,7 @@ import { RecentFoodExpenses } from '../components/RecentFoodExpenses';
 import { SpendingInsight } from '../components/SpendingInsight';
 import { TopCategories } from '../components/TopCategories';
 import { Skeleton } from '../components/Skeleton';
+import { OfflineFallback } from '../components/OfflineFallback';
 
 export const DashboardPage = () => {
   const {
@@ -20,6 +21,7 @@ export const DashboardPage = () => {
     requestConfirm,
     setActiveTab,
     activeSpace,
+    triggerRefresh,
   } = useApp();
 
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -180,6 +182,11 @@ export const DashboardPage = () => {
           <Skeleton height="100px" borderRadius="var(--radius-xl)" />
           <Skeleton height="90px" borderRadius="var(--radius-xl)" />
         </div>
+      ) : !dashboardData ? (
+        <OfflineFallback
+          message="Your dashboard couldn't load because you're in offline mode and no data is saved yet."
+          onRetry={triggerRefresh}
+        />
       ) : (
         <>
           {/* 3. Recent Food Expenses Card (Matching reference design 1:1) */}

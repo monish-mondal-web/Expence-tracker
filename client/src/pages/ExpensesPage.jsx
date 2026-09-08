@@ -3,16 +3,18 @@ import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { ExpenseList } from '../components/ExpenseList';
 import { Skeleton } from '../components/Skeleton';
+import { OfflineFallback } from '../components/OfflineFallback';
 import { formatCurrency } from '../utils/currency';
 import { formatMonthYear } from '../utils/date';
 import { Search, Filter, ArrowUpDown, Plus } from 'lucide-react';
 
 export const ExpensesPage = () => {
-  const { currentMonth, currentYear, refreshKey, categories, openAddExpense } = useApp();
+  const { currentMonth, currentYear, refreshKey, categories, openAddExpense, triggerRefresh } = useApp();
 
   const [expenses, setExpenses] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortOrder, setSortOrder] = useState('newest');
@@ -32,10 +34,12 @@ export const ExpensesPage = () => {
         if (isMounted && res.success) {
           setExpenses(res.data || []);
           setTotalAmount(res.totalAmount || 0);
+          setHasError(false);
         }
       })
       .catch((err) => {
         console.error('Failed to load expenses', err);
+        if (isMounted) setHasError(true);
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -58,6 +62,15 @@ export const ExpensesPage = () => {
           <Skeleton height="64px" borderRadius="var(--radius-lg)" />
         </div>
       </div>
+    );
+  }
+
+  if (hasError && expenses.length === 0) {
+    return (
+      <OfflineFallback
+        message="Expenses could not be loaded because you're in offline mode and no data is saved yet."
+        onRetry={triggerRefresh}
+      />
     );
   }
 

@@ -6,13 +6,14 @@ import { formatMonthYear } from '../utils/date';
 import { SpendingChart } from '../components/SpendingChart';
 import { CategoryBreakdown } from '../components/CategoryBreakdown';
 import { Skeleton } from '../components/Skeleton';
+import { OfflineFallback } from '../components/OfflineFallback';
 import {
   PieChart as PieIcon,
   TrendingUp,
 } from 'lucide-react';
 
 export const AnalyticsPage = () => {
-  const { currentMonth, currentYear, todayDate, refreshKey } = useApp();
+  const { currentMonth, currentYear, todayDate, refreshKey, triggerRefresh, isOnline } = useApp();
 
   const [analyticsData, setAnalyticsData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,6 +50,15 @@ export const AnalyticsPage = () => {
     );
   }
 
+  if (!analyticsData) {
+    return (
+      <OfflineFallback
+        message="Spending analytics couldn't be loaded because you're in offline mode and no data is saved yet."
+        onRetry={triggerRefresh}
+      />
+    );
+  }
+
   const {
     monthlyBudget = 0,
     totalSpent = 0,
@@ -61,7 +71,7 @@ export const AnalyticsPage = () => {
     dailyChartData = [],
     categoryBreakdown = [],
     peakDay,
-  } = analyticsData || {};
+  } = analyticsData;
 
   const hasData = totalSpent > 0 || monthlyBudget > 0;
 
