@@ -13,11 +13,9 @@ import {
   Plus,
   Trash2,
   User,
-  Loader2,
   Pencil,
   X,
   Link2,
-  Check,
   Info,
 } from 'lucide-react';
 

@@ -59,7 +59,15 @@ export const LoadingBar = ({
       });
     }, 28);
 
-    return () => clearInterval(interval);
+    // Safety watchdog: Force allow 100% completion after 2.5s so user is NEVER blocked by slow/offline backend
+    const safetyWatchdog = setTimeout(() => {
+      isReadyRef.current = true;
+    }, 2500);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(safetyWatchdog);
+    };
   }, [externalProgress]);
 
   // When 100% is reached, smoothly trigger onComplete callback
