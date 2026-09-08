@@ -5,7 +5,33 @@ import { api } from '../services/api';
 import { CategoryIcon, AVAILABLE_ICONS } from '../components/CategoryIcon';
 import { CARTOON_AVATAR_PRESETS } from '../components/AuthScreen';
 import { Skeleton } from '../components/Skeleton';
-import { ArrowUpRight, DollarSign, Tag, Plus, Trash2, User, Loader2 } from 'lucide-react';
+import {
+  ArrowUpRight,
+  DollarSign,
+  Tag,
+  Plus,
+  Trash2,
+  User,
+  Loader2,
+  Pencil,
+  X,
+  Link2,
+  Check,
+  Sparkles,
+} from 'lucide-react';
+
+const COLOR_SWATCHES = [
+  '#10B981', // Emerald
+  '#059669', // Forest Green
+  '#F59E0B', // Amber
+  '#F43F5E', // Rose
+  '#8B5CF6', // Purple
+  '#0EA5E9', // Ocean Blue
+  '#F97316', // Orange
+  '#EC4899', // Pink
+  '#6366F1', // Indigo
+  '#64748B', // Slate
+];
 
 export const SettingsPage = () => {
   const {
@@ -14,6 +40,7 @@ export const SettingsPage = () => {
     triggerRefresh,
     showToast,
     requestConfirm,
+    dashboardData,
   } = useApp();
 
   const { user, updateProfile } = useAuth();
@@ -21,6 +48,29 @@ export const SettingsPage = () => {
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatar || CARTOON_AVATAR_PRESETS[0]);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Available spaces for category linking
+  const defaultSpaces = [
+    'Food & Dining',
+    'Room Rent',
+    'Bills & Utilities',
+    'Household & Maid',
+    'Travel & Commute',
+    'Health & Medical',
+    'Shopping & Lifestyle',
+    'Education',
+    'Personal Care',
+    'Entertainment',
+    'General',
+  ];
+  const availableSpaces = [...defaultSpaces];
+  if (dashboardData?.spaces && Array.isArray(dashboardData.spaces)) {
+    dashboardData.spaces.forEach((s) => {
+      if (s.name && !availableSpaces.includes(s.name)) {
+        availableSpaces.push(s.name);
+      }
+    });
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -33,7 +83,6 @@ export const SettingsPage = () => {
     if (user?.name) setProfileName(user.name);
     if (user?.avatar) setSelectedAvatar(user.avatar);
   }, [user]);
-
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -60,7 +109,28 @@ export const SettingsPage = () => {
   const [newCatName, setNewCatName] = useState('');
   const [newCatIcon, setNewCatIcon] = useState('Utensils');
   const [newCatColor, setNewCatColor] = useState('#10B981');
+  const [newCatSpace, setNewCatSpace] = useState('Food & Dining');
   const [isAddingCat, setIsAddingCat] = useState(false);
+
+  // Edit category modal state
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [editCatName, setEditCatName] = useState('');
+  const [editCatIcon, setEditCatIcon] = useState('Utensils');
+  const [editCatColor, setEditCatColor] = useState('#10B981');
+  const [editCatSpace, setEditCatSpace] = useState('Food & Dining');
+  const [isUpdatingCat, setIsUpdatingCat] = useState(false);
+
+  const openEditCategory = (cat) => {
+    setEditingCategory(cat);
+    setEditCatName(cat.name || '');
+    setEditCatIcon(cat.icon || 'Utensils');
+    setEditCatColor(cat.color || '#10B981');
+    setEditCatSpace(cat.space || 'Food & Dining');
+  };
+
+  const closeEditCategory = () => {
+    setEditingCategory(null);
+  };
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
@@ -76,6 +146,7 @@ export const SettingsPage = () => {
         name: newCatName.trim(),
         icon: newCatIcon,
         color: newCatColor,
+        space: newCatSpace,
       });
 
       if (res.success) {
@@ -87,6 +158,34 @@ export const SettingsPage = () => {
       showToast(err.message || 'Failed to create category', 'error');
     } finally {
       setIsAddingCat(false);
+    }
+  };
+
+  const handleUpdateCategory = async (e) => {
+    e.preventDefault();
+    if (!editCatName.trim()) {
+      showToast('Category name is required', 'error');
+      return;
+    }
+
+    try {
+      setIsUpdatingCat(true);
+      const res = await api.updateCategory(editingCategory._id, {
+        name: editCatName.trim(),
+        icon: editCatIcon,
+        color: editCatColor,
+        space: editCatSpace,
+      });
+
+      if (res.success) {
+        showToast(`Category "${editCatName.trim()}" updated successfully`);
+        closeEditCategory();
+        triggerRefresh();
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to update category', 'error');
+    } finally {
+      setIsUpdatingCat(false);
     }
   };
 
@@ -129,12 +228,6 @@ export const SettingsPage = () => {
           <Skeleton width="160px" height="22px" borderRadius="6px" style={{ marginBottom: '0.6rem' }} />
           <Skeleton height="36px" borderRadius="6px" style={{ marginBottom: '1rem' }} />
           <Skeleton width="180px" height="42px" borderRadius="var(--radius-md)" />
-        </div>
-
-        {/* Currency Card Skeleton */}
-        <div style={{ background: '#FFFFFF', borderRadius: 'var(--radius-xl)', padding: '1.5rem', border: '1px solid var(--color-border)' }}>
-          <Skeleton width="190px" height="20px" borderRadius="6px" style={{ marginBottom: '0.6rem' }} />
-          <Skeleton height="46px" borderRadius="var(--radius-md)" />
         </div>
 
         {/* Categories Card Skeleton */}
@@ -249,71 +342,55 @@ export const SettingsPage = () => {
             type="submit"
             className="btn-primary"
             disabled={isSavingProfile}
-            style={{ width: 'auto', alignSelf: 'flex-start', margin: 0, padding: '0.65rem 1.4rem' }}
+            style={{ width: 'auto', alignSelf: 'flex-start', margin: 0, padding: '0.65rem 1.6rem' }}
           >
-            {isSavingProfile ? 'Saving...' : 'Save Profile'}
+            {isSavingProfile ? 'Saving...' : 'Save Profile Changes'}
           </button>
         </form>
       </div>
 
-      {/* 1. Monthly Budget Management */}
+      {/* 1. Monthly Budget Management Card */}
       <div className="transactions-section">
-
         <div className="section-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <ArrowUpRight size={20} color="#0F172A" />
-            <h2>Monthly Budget</h2>
+            <DollarSign size={20} color="#059669" />
+            <h2>Monthly Budget Settings</h2>
           </div>
         </div>
 
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '1.25rem' }}>
-          Set your monthly budget for categories (Food, Travel, Tour, Room Rent, Health, Gym & more). Safe daily limits and dynamic recommendations recalculate instantly.
+        <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+          Update your overall food spending limit and individual category budgets for the current month. Your dynamic safe daily spend and over-limit warnings update automatically.
         </p>
 
         <button
           type="button"
           className="btn-primary"
           onClick={openSetBudget}
-          style={{ width: 'auto', padding: '0.75rem 1.5rem', display: 'inline-flex' }}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            width: 'auto',
+            padding: '0.75rem 1.4rem',
+            borderRadius: 'var(--radius-lg)',
+            margin: 0,
+          }}
         >
-          Manage Monthly Budget
+          <span>Manage Monthly Budget & Limits</span>
+          <ArrowUpRight size={18} />
         </button>
       </div>
 
-      {/* 2. Currency Setting */}
+      {/* 2. Custom Categories Management Card */}
       <div className="transactions-section">
         <div className="section-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <DollarSign size={20} color="#0F172A" />
-            <h2>Currency & Number Format</h2>
+            <Tag size={20} color="#059669" />
+            <h2>Expense Categories Management</h2>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'var(--color-surface-subtle)', borderRadius: 'var(--radius-md)' }}>
-          <div>
-            <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)', display: 'block' }}>
-              Indian Rupee (₹ INR)
-            </strong>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Formatted in Indian numbering system (e.g. ₹1,000, ₹10,000, ₹1,00,000)
-            </span>
-          </div>
-          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            ₹
-          </span>
-        </div>
-      </div>
-
-      {/* 3. Category Management */}
-      <div className="transactions-section">
-        <div className="section-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Tag size={20} color="#0F172A" />
-            <h2>Expense Categories</h2>
-          </div>
-        </div>
-
-        {/* 1. ADD CUSTOM EXPENSE CATEGORY AT THE TOP */}
+        {/* Add Category Form */}
         <div
           style={{
             background: '#FFFFFF',
@@ -337,7 +414,7 @@ export const SettingsPage = () => {
                 </h3>
               </div>
               <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '3px 0 0' }}>
-                Pick an icon, select a vibrant theme color, and name your category.
+                Pick an icon (Maid, Chef, Rent, Travel, etc.), select a theme color, name it, and link to a Space.
               </p>
             </div>
 
@@ -360,24 +437,47 @@ export const SettingsPage = () => {
                 <strong style={{ fontSize: '0.82rem' }}>
                   {newCatName.trim() || 'New Category'}
                 </strong>
+                <span style={{ fontSize: '0.7rem', opacity: 0.75, marginLeft: '3px' }}>
+                  ({newCatSpace})
+                </span>
               </div>
             </div>
           </div>
 
           <form onSubmit={handleAddCategory} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-            {/* Category Name */}
-            <div>
-              <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px' }}>
-                Category Name
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Desserts, Street Food, Midnight Munchies"
-                className="form-input"
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                required
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              {/* Category Name */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px' }}>
+                  Category Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Maid, Cook, Electricity, Snacks"
+                  className="form-input"
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Category Linking to Space */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Link2 size={14} color="#059669" /> Link Category to Space:
+                </label>
+                <select
+                  className="form-input"
+                  value={newCatSpace}
+                  onChange={(e) => setNewCatSpace(e.target.value)}
+                >
+                  {availableSpaces.map((sp) => (
+                    <option key={sp} value={sp}>
+                      {sp}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {/* Visual Icon Grid */}
@@ -390,7 +490,7 @@ export const SettingsPage = () => {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(42px, 1fr))',
                   gap: '8px',
-                  maxHeight: '136px',
+                  maxHeight: '140px',
                   overflowY: 'auto',
                   padding: '8px',
                   background: '#F8FAFC',
@@ -436,18 +536,7 @@ export const SettingsPage = () => {
                 Select Color:
               </label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                {[
-                  '#10B981', // Emerald
-                  '#059669', // Forest Green
-                  '#F59E0B', // Amber
-                  '#F43F5E', // Rose
-                  '#8B5CF6', // Purple
-                  '#0EA5E9', // Ocean Blue
-                  '#F97316', // Orange
-                  '#EC4899', // Pink
-                  '#6366F1', // Indigo
-                  '#64748B', // Slate
-                ].map((colorHex) => {
+                {COLOR_SWATCHES.map((colorHex) => {
                   const isSelected = newCatColor.toLowerCase() === colorHex.toLowerCase();
                   return (
                     <button
@@ -516,12 +605,12 @@ export const SettingsPage = () => {
         {/* 2. Existing Categories Grid */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
           <h4 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-            Available Food Categories ({categories.length})
+            Available Categories ({categories.length})
           </h4>
-          <span style={{ fontSize: '0.78rem', color: '#64748B' }}>Default & custom food categories</span>
+          <span style={{ fontSize: '0.78rem', color: '#64748B' }}>Default & custom categories with linked spaces</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '0.75rem' }}>
           {categories.map((cat) => (
             <div
               key={cat._id || cat.name}
@@ -535,29 +624,237 @@ export const SettingsPage = () => {
                 background: '#FFFFFF',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: `${cat.color || '#64748B'}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <CategoryIcon name={cat.icon} size={16} color={cat.color || '#64748B'} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
+                <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: `${cat.color || '#64748B'}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <CategoryIcon name={cat.icon} size={17} color={cat.color || '#64748B'} />
                 </div>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  {cat.name}
-                </span>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {cat.name}
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '1px' }}>
+                    <Link2 size={10} color="#059669" />
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {cat.space || 'Food & Dining'}
+                    </span>
+                  </span>
+                </div>
               </div>
 
               {!cat.isDefault && (
-                <button
-                  type="button"
-                  className="action-icon-btn delete"
-                  onClick={() => handleDeleteCategory(cat)}
-                  title="Delete custom category"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginLeft: '6px' }}>
+                  <button
+                    type="button"
+                    className="action-icon-btn edit"
+                    onClick={() => openEditCategory(cat)}
+                    title={`Edit ${cat.name}`}
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="action-icon-btn delete"
+                    onClick={() => handleDeleteCategory(cat)}
+                    title={`Delete ${cat.name}`}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               )}
             </div>
           ))}
         </div>
       </div>
+
+      {/* Edit Category Modal */}
+      {editingCategory && (
+        <div className="modal-overlay" onClick={closeEditCategory}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '520px', width: '92%' }}
+          >
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: `${editCatColor}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CategoryIcon name={editCatIcon} size={18} color={editCatColor} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>Edit Category</h3>
+              </div>
+              <button type="button" className="modal-close-btn" onClick={closeEditCategory}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateCategory} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem', padding: '1.25rem' }}>
+              {/* Live Preview */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#F8FAFC', padding: '0.6rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid #E2E8F0' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Preview:</span>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 12px',
+                    borderRadius: '10px',
+                    background: `${editCatColor}18`,
+                    border: `1px solid ${editCatColor}35`,
+                    color: editCatColor,
+                  }}
+                >
+                  <CategoryIcon name={editCatIcon} size={16} color={editCatColor} />
+                  <strong style={{ fontSize: '0.88rem' }}>{editCatName.trim() || 'Category Name'}</strong>
+                  <span style={{ fontSize: '0.72rem', opacity: 0.8, marginLeft: '4px' }}>({editCatSpace})</span>
+                </div>
+              </div>
+
+              {/* Category Name */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px' }}>
+                  Category Name
+                </label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editCatName}
+                  onChange={(e) => setEditCatName(e.target.value)}
+                  placeholder="e.g. Maid, Cook, Electricity"
+                  required
+                />
+              </div>
+
+              {/* Link to Space */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Link2 size={14} color="#059669" /> Link Category to Space:
+                </label>
+                <select
+                  className="form-input"
+                  value={editCatSpace}
+                  onChange={(e) => setEditCatSpace(e.target.value)}
+                >
+                  {availableSpaces.map((sp) => (
+                    <option key={sp} value={sp}>{sp}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
+                  Expenses under this Space will use this category.
+                </span>
+              </div>
+
+              {/* Icon Picker */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px' }}>
+                  Select Icon: <span style={{ color: '#059669', fontWeight: 800 }}>{editCatIcon}</span>
+                </label>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(42px, 1fr))',
+                    gap: '8px',
+                    maxHeight: '140px',
+                    overflowY: 'auto',
+                    padding: '8px',
+                    background: '#F8FAFC',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid #E2E8F0',
+                  }}
+                >
+                  {AVAILABLE_ICONS.map((iconName) => {
+                    const isSelected = editCatIcon === iconName;
+                    return (
+                      <button
+                        key={iconName}
+                        type="button"
+                        onClick={() => setEditCatIcon(iconName)}
+                        title={iconName}
+                        style={{
+                          height: '42px',
+                          borderRadius: '10px',
+                          background: isSelected ? '#FFFFFF' : 'transparent',
+                          border: isSelected ? `2px solid ${editCatColor}` : '1px solid transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <CategoryIcon name={iconName} size={20} color={isSelected ? editCatColor : '#64748B'} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Color Picker */}
+              <div>
+                <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px' }}>
+                  Color Theme:
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {COLOR_SWATCHES.map((colorHex) => {
+                    const isSelected = editCatColor.toLowerCase() === colorHex.toLowerCase();
+                    return (
+                      <button
+                        key={colorHex}
+                        type="button"
+                        onClick={() => setEditCatColor(colorHex)}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: colorHex,
+                          border: isSelected ? '3px solid #0F172A' : '2px solid #FFFFFF',
+                          cursor: 'pointer',
+                          transform: isSelected ? 'scale(1.12)' : 'scale(1)',
+                          transition: 'all 0.15s ease',
+                        }}
+                        title={colorHex}
+                      />
+                    );
+                  })}
+                  <input
+                    type="color"
+                    value={editCatColor}
+                    onChange={(e) => setEditCatColor(e.target.value)}
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      padding: '2px',
+                      border: '1px solid #CBD5E1',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                    }}
+                    title="Choose custom color"
+                  />
+                </div>
+              </div>
+
+              {/* Save / Cancel Buttons */}
+              <div style={{ display: 'flex', gap: '10px', marginTop: '0.4rem' }}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={isUpdatingCat}
+                  style={{ flex: 1, margin: 0 }}
+                >
+                  {isUpdatingCat ? 'Saving Changes...' : 'Save Changes'}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closeEditCategory}
+                  style={{ margin: 0, padding: '0 1.2rem' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

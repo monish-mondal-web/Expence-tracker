@@ -21,6 +21,11 @@ const categorySchema = new mongoose.Schema(
       type: String,
       default: '#3B82F6',
     },
+    space: {
+      type: String,
+      default: 'Food & Dining',
+      trim: true,
+    },
     isDefault: {
       type: Boolean,
       default: false,

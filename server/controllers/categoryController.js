@@ -24,7 +24,7 @@ exports.getCategories = async (req, res, next) => {
 exports.createCategory = async (req, res, next) => {
   try {
     const user = req.user || (await getOrCreateDefaultUser());
-    const { name, icon, color } = req.body;
+    const { name, icon, color, space } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Category name is required' });
@@ -50,6 +50,7 @@ exports.createCategory = async (req, res, next) => {
       name: trimmedName,
       icon: icon || 'Utensils',
       color: color || '#3B82F6',
+      space: space && space.trim() ? space.trim() : 'Food & Dining',
       isDefault: false,
     });
 
@@ -97,7 +98,7 @@ exports.updateCategory = async (req, res, next) => {
   try {
     const user = req.user || (await getOrCreateDefaultUser());
     const { id } = req.params;
-    const { name, icon, color } = req.body;
+    const { name, icon, color, space } = req.body;
 
     const category = await Category.findOne({ _id: id, userId: user._id });
     if (!category) {
@@ -110,6 +111,7 @@ exports.updateCategory = async (req, res, next) => {
     if (name) category.name = name.trim();
     if (icon) category.icon = icon;
     if (color) category.color = color;
+    if (space !== undefined) category.space = space ? space.trim() : 'Food & Dining';
 
     await category.save();
 

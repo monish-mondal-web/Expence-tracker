@@ -1639,6 +1639,16 @@ button:focus, button:focus-visible, a:focus, a:focus-visible,
   color: var(--text-primary);
 }
 
+.action-icon-btn.edit {
+  color: #64748B;
+}
+
+.action-icon-btn.edit:hover,
+.action-icon-btn.edit:active {
+  background: #ECFDF5;
+  color: #059669;
+}
+
 .action-icon-btn.delete {
   color: #94A3B8;
 }
