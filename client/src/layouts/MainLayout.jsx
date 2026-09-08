@@ -9,6 +9,7 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { AuthModal } from '../components/AuthModal';
 import { Toast } from '../components/Toast';
 import { ProfileDrawer } from '../components/ProfileDrawer';
+import { UpdateAnnouncementModal } from '../components/UpdateAnnouncementModal';
 
 import {
   Home,
@@ -211,6 +212,7 @@ export const MainLayout = ({ children }) => {
       <ConfirmModal />
       <AuthModal />
       <Toast />
+      <UpdateAnnouncementModal />
 
       {/* Account Profile Slide-out Drawer */}
       <ProfileDrawer

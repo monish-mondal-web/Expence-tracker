@@ -661,9 +661,51 @@ export const SettingsPage = () => {
                   </button>
                 </div>
               )}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
+
+      {/* App Version & Release Notes */}
+      <div className="fintech-card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={16} color="#059669" />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Pocket Khorcha</h3>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>Version 1.2 (Offline-First Edition)</p>
+            </div>
+          </div>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: '999px' }}>
+            Latest
+          </span>
+        </div>
+
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 1rem', lineHeight: 1.45 }}>
+          Now with 100% offline access, automatic background cloud sync, category editing, and 80+ icons.
+        </p>
+
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => window.dispatchEvent(new CustomEvent('pk:open-update-modal'))}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '0.75rem',
+            fontSize: '0.86rem',
+            fontWeight: 600,
+            borderRadius: '12px',
+          }}
+        >
+          <Sparkles size={15} color="#059669" />
+          <span>View What's New in v1.2</span>
+        </button>
       </div>
 
       {/* Edit Category Modal */}
