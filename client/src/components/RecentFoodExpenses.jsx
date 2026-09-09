@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { formatCurrency } from '../utils/currency';
-import { formatTime, getRelativeDateLabel } from '../utils/date';
+import { formatTime, getRelativeDateLabel, toLocalISODate } from '../utils/date';
 import { useApp } from '../context/AppContext';
 import { CategoryIcon } from './CategoryIcon';
 import { ChevronRight, PlusCircle, ShoppingBag, Trash2 } from 'lucide-react';
@@ -46,16 +46,46 @@ export const RecentFoodExpenses = ({
   onAddExpense,
 }) => {
   const { activeSpace } = useApp();
-  // 100% Dynamic: take up to 5 most recent expenses directly from data
-  const recentItems = expenses.slice(0, 5);
+
+  // Group recent expenses by day (up to 8 most recent items)
+  const dayGroups = useMemo(() => {
+    const items = (expenses || []).slice(0, 8);
+    const groupsMap = {};
+
+    items.forEach((item) => {
+      const dateKey = toLocalISODate(item.date);
+      if (!groupsMap[dateKey]) {
+        const rawDate = item.date ? new Date(item.date) : new Date();
+        const relLabel = getRelativeDateLabel(item.date);
+        const isToday = relLabel === 'Today';
+        const isYesterday = relLabel === 'Yesterday';
+
+        let subLabel = '';
+        if (isToday || isYesterday) {
+          const day = rawDate.getDate();
+          const monthShort = rawDate.toLocaleDateString('en-US', { month: 'short' });
+          subLabel = `• ${day} ${monthShort}`;
+        }
+
+        groupsMap[dateKey] = {
+          dateKey,
+          label: relLabel || 'Today',
+          subLabel,
+          isToday,
+          isYesterday,
+          total: 0,
+          items: [],
+        };
+      }
+      groupsMap[dateKey].total += (Number(item.amount) || 0);
+      groupsMap[dateKey].items.push(item);
+    });
+
+    // Sort descending by date (latest first)
+    return Object.values(groupsMap).sort((a, b) => (b.dateKey > a.dateKey ? 1 : -1));
+  }, [expenses]);
 
   const title = activeSpace && activeSpace !== 'All' ? `Recent ${activeSpace} Expenses` : 'Recent Expenses';
-
-  // Dynamic header tag based on actual latest expense date (never hardcoded)
-  const dateHeader =
-    recentItems.length > 0 && recentItems[0]?.date
-      ? `LATEST · ${getRelativeDateLabel(recentItems[0].date).toUpperCase()}`
-      : 'RECENT EXPENSES';
 
   return (
     <div className="recent-expenses-card">
@@ -70,10 +100,7 @@ export const RecentFoodExpenses = ({
         )}
       </div>
 
-      {/* Dynamic Date Tag */}
-      <div className="recent-expenses-date-tag">{dateHeader}</div>
-
-      {recentItems.length === 0 ? (
+      {dayGroups.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
           <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
             <ShoppingBag size={20} color="#94A3B8" />
@@ -93,67 +120,97 @@ export const RecentFoodExpenses = ({
         </div>
       ) : (
         <div className="recent-expenses-list">
-          {recentItems.map((item) => {
-            const style = getCategoryStyle(item.category);
-            const rel = item.date ? getRelativeDateLabel(item.date) : 'Today';
-            const time = item.date ? formatTime(item.date) : '';
-            const displayTime = time ? `${rel}, ${time}` : rel;
+          {dayGroups.map((group) => {
+            const dividerClass = group.isToday
+              ? 'today'
+              : group.isYesterday
+              ? 'yesterday'
+              : 'past';
 
             return (
-              <div
-                key={item._id || item.id}
-                className="recent-expense-item"
-                onClick={() => onItemClick && onItemClick(item)}
-                title="Click to edit expense"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onItemClick && onItemClick(item);
-                  }
-                }}
-              >
-                {/* Left: Pastel Icon Circle */}
-                <div
-                  className="category-circle-badge"
-                  style={{ background: style.bg }}
-                >
-                  <CategoryIcon
-                    name={item.categoryIcon || style.defaultIcon}
-                    size={20}
-                    color={style.color}
-                  />
+              <div key={group.dateKey} className="recent-day-group">
+                {/* Day-wise Divider */}
+                <div className={`recent-day-divider ${dividerClass}`}>
+                  <div className="recent-day-left">
+                    <span className="recent-day-badge">{group.label}</span>
+                    {group.subLabel && (
+                      <span className="recent-day-subdate">{group.subLabel}</span>
+                    )}
+                  </div>
+                  <div className="recent-day-right">
+                    <span className="recent-day-used-label">Used:</span>
+                    <span className="recent-day-used-val">
+                      {formatCurrency(group.total)}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Middle: Category & Real Dynamic Time */}
-                <div className="recent-item-info">
-                  <h4 className="recent-item-category">{item.category}</h4>
-                  <span className="recent-item-time">
-                    {displayTime}
-                    {item.note ? ` · ${item.note}` : ''}
-                  </span>
-                </div>
+                {/* Day Items */}
+                <div className="recent-day-items">
+                  {group.items.map((item) => {
+                    const style = getCategoryStyle(item.category);
+                    const time = item.date ? formatTime(item.date) : '';
+                    const displayTime = time || (item.date ? getRelativeDateLabel(item.date) : 'Today');
 
-                {/* Right: Amount & Delete Button */}
-                <div className="recent-item-right">
-                  <span className="recent-item-amount">
-                    {formatCurrency(item.amount)}
-                  </span>
-                  {onDeleteExpense && (
-                    <button
-                      type="button"
-                      className="recent-item-del-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteExpense(item);
-                      }}
-                      title="Delete expense"
-                      aria-label="Delete expense"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
+                    return (
+                      <div
+                        key={item._id || item.id}
+                        className="recent-expense-item"
+                        onClick={() => onItemClick && onItemClick(item)}
+                        title="Click to edit expense"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onItemClick && onItemClick(item);
+                          }
+                        }}
+                      >
+                        {/* Left: Pastel Icon Circle */}
+                        <div
+                          className="category-circle-badge"
+                          style={{ background: style.bg }}
+                        >
+                          <CategoryIcon
+                            name={item.categoryIcon || style.defaultIcon}
+                            size={20}
+                            color={style.color}
+                          />
+                        </div>
+
+                        {/* Middle: Category & Time / Note */}
+                        <div className="recent-item-info">
+                          <h4 className="recent-item-category">{item.category}</h4>
+                          <span className="recent-item-time">
+                            {displayTime}
+                            {item.note ? ` · ${item.note}` : ''}
+                          </span>
+                        </div>
+
+                        {/* Right: Amount & Delete Button */}
+                        <div className="recent-item-right">
+                          <span className="recent-item-amount">
+                            {formatCurrency(item.amount)}
+                          </span>
+                          {onDeleteExpense && (
+                            <button
+                              type="button"
+                              className="recent-item-del-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteExpense(item);
+                              }}
+                              title="Delete expense"
+                              aria-label="Delete expense"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

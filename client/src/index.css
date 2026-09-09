@@ -4199,6 +4199,96 @@ select.form-input {
   margin-bottom: 8px;
 }
 
+/* Recent Day-Wise Divider & Grouping */
+.recent-day-group {
+  margin-bottom: 8px;
+}
+
+.recent-day-group:last-child {
+  margin-bottom: 2px;
+}
+
+.recent-day-divider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 9px;
+  background: #F8FAFC;
+  border-radius: 8px;
+  margin: 6px 0 2px;
+  border-left: 3px solid #94A3B8;
+}
+
+.recent-day-divider.today {
+  background: #ECFDF5;
+  border-left-color: #10B981;
+}
+
+.recent-day-divider.yesterday {
+  background: #F1F5F9;
+  border-left-color: #64748B;
+}
+
+.recent-day-divider.past {
+  background: #F8FAFC;
+  border-left-color: #94A3B8;
+}
+
+.recent-day-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recent-day-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #1E293B;
+}
+
+.recent-day-divider.today .recent-day-badge {
+  color: #047857;
+}
+
+.recent-day-divider.yesterday .recent-day-badge {
+  color: #334155;
+}
+
+.recent-day-subdate {
+  font-size: 0.68rem;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.recent-day-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.recent-day-used-label {
+  font-size: 0.68rem;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.recent-day-used-val {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.recent-day-divider.today .recent-day-used-val {
+  color: #047857;
+}
+
+.recent-day-items {
+  display: flex;
+  flex-direction: column;
+}
+
 .recent-expenses-list {
   display: flex;
   flex-direction: column;
