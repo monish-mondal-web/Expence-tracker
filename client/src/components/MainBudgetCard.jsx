@@ -17,6 +17,7 @@ import {
   Layers,
   Trash2,
   Receipt,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const MainBudgetCard = ({
@@ -143,7 +144,7 @@ export const MainBudgetCard = ({
   const isDailyLimitApproaching =
     !isDailyLimitExpired &&
     effectiveSafeDaily > 0 &&
-    todaySpent >= effectiveSafeDaily * 0.85;
+    todaySpent >= effectiveSafeDaily * 0.75;
 
   let statusText = 'ON TRACK';
   let statusDotColor = '#34D399'; // Emerald
@@ -157,6 +158,17 @@ export const MainBudgetCard = ({
   } else {
     statusText = 'ON TRACK';
     statusDotColor = '#34D399'; // Emerald
+  }
+
+  // Price-wise dynamic color for Today Used:
+  // - Green (#34D399): < 75% of daily safe limit (safe & healthy)
+  // - Yellow (#FBBF24): 75% to 99% of daily safe limit (caution / approaching)
+  // - Red (#FB7185): >= 100% of daily safe limit (over limit / expired)
+  let todayUsedColor = '#34D399';
+  if (isDailyLimitExpired) {
+    todayUsedColor = '#FB7185';
+  } else if (isDailyLimitApproaching) {
+    todayUsedColor = '#FBBF24';
   }
 
   const isOverLimit = isDailyLimitExpired;
@@ -475,6 +487,11 @@ export const MainBudgetCard = ({
                 <AlertCircle size={12} color="#FB7185" />
                 <span style={{ color: '#FB7185' }}>Today's Over Limit</span>
               </>
+            ) : isDailyLimitApproaching ? (
+              <>
+                <AlertTriangle size={12} color="#FBBF24" />
+                <span style={{ color: '#FBBF24' }}>Today Used</span>
+              </>
             ) : (
               <>
                 <Receipt size={12} color="#34D399" />
@@ -484,7 +501,7 @@ export const MainBudgetCard = ({
           </span>
           <span
             className="pace-value"
-            style={{ color: isDailyLimitExpired ? '#FB7185' : '#34D399' }}
+            style={{ color: todayUsedColor }}
           >
             {isDailyLimitExpired
               ? `-${formatCurrency(Math.abs(safeRemainingToday))}`
@@ -537,14 +554,7 @@ export const MainBudgetCard = ({
                 <span className="breakdown-label">Spent Today</span>
                 <span
                   className="breakdown-val"
-                  style={{
-                    color:
-                      safeRemainingToday < 0
-                        ? '#FB7185'
-                        : todaySpent > 0
-                        ? '#FCD34D'
-                        : '#34D399',
-                  }}
+                  style={{ color: todayUsedColor }}
                 >
                   {formatCurrency(todaySpent)}
                 </span>
