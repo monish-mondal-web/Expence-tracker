@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
   Layers,
   Trash2,
+  Receipt,
 } from 'lucide-react';
 
 export const MainBudgetCard = ({
@@ -469,25 +470,25 @@ export const MainBudgetCard = ({
 
         <div className="pace-item right">
           <span className="pace-label">
-            {safeRemainingToday < 0 ? (
+            {isDailyLimitExpired ? (
               <>
                 <AlertCircle size={12} color="#FB7185" />
                 <span style={{ color: '#FB7185' }}>Today's Over Limit</span>
               </>
             ) : (
               <>
-                <ShieldCheck size={12} color="#34D399" />
-                <span style={{ color: '#34D399' }}>Today's Safe Left</span>
+                <Receipt size={12} color="#34D399" />
+                <span style={{ color: '#34D399' }}>Today Used</span>
               </>
             )}
           </span>
           <span
             className="pace-value"
-            style={{ color: safeRemainingToday < 0 ? '#FB7185' : '#34D399' }}
+            style={{ color: isDailyLimitExpired ? '#FB7185' : '#34D399' }}
           >
-            {safeRemainingToday < 0
+            {isDailyLimitExpired
               ? `-${formatCurrency(Math.abs(safeRemainingToday))}`
-              : formatCurrency(safeRemainingToday)}
+              : formatCurrency(todaySpent)}
           </span>
         </div>
       </div>

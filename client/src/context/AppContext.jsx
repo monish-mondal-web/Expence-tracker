@@ -51,6 +51,9 @@ export const AppProvider = ({ children }) => {
   const setActiveTab = useCallback((tab, replace = false) => {
     const canonicalTab = tab === 'analytics' ? 'budget' : tab;
     setActiveTabState(canonicalTab);
+    if (canonicalTab === 'dashboard') {
+      setActiveSpaceState('Food & Dining');
+    }
     if (typeof window !== 'undefined') {
       const targetPath = getPathFromTab(canonicalTab);
       if (window.location.pathname !== targetPath) {
@@ -68,6 +71,9 @@ export const AppProvider = ({ children }) => {
     const handlePopState = () => {
       const tab = getTabFromPath();
       setActiveTabState(tab);
+      if (tab === 'dashboard') {
+        setActiveSpaceState('Food & Dining');
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -262,6 +268,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // -------------------------------------------------------------
+  // -------------------------------------------------------------
   // OPTIMISTIC & OFFLINE RESILIENT UI ACTIONS
   // -------------------------------------------------------------
   const addExpenseOptimistic = async (payload) => {
@@ -271,6 +278,7 @@ export const AppProvider = ({ children }) => {
       amount: payload.amount,
       date: payload.date,
       category: payload.category,
+      space: payload.space || 'Food & Dining',
       note: payload.note || '',
       createdAt: new Date().toISOString(),
     };
@@ -299,6 +307,42 @@ export const AppProvider = ({ children }) => {
         safeStatus = 'OVER SAFE LIMIT';
       }
 
+      // Update targeted space in spaces array
+      const targetSpace = (payload.space || activeSpace || 'Food & Dining').toLowerCase();
+      const updatedSpaces = (prev.spaces || []).map((sp) => {
+        if (sp?.name && sp.name.toLowerCase() === targetSpace) {
+          const spTotal = (sp.totalSpent || 0) + payload.amount;
+          const spToday = isToday ? (sp.todaySpent || 0) + payload.amount : (sp.todaySpent || 0);
+          const spBudget = sp.monthlyBudget || 0;
+          const spRemaining = Math.max(0, spBudget - spTotal);
+          const spSafeLimit = sp.dynamicSafeDailyBudget || sp.safeDailyBudget || 0;
+          return {
+            ...sp,
+            totalSpent: spTotal,
+            todaySpent: spToday,
+            remainingBudget: spRemaining,
+            safeRemainingToday: spSafeLimit - spToday,
+          };
+        }
+        return sp;
+      });
+
+      let updatedActiveSpaceData = prev.activeSpaceData;
+      if (updatedActiveSpaceData && updatedActiveSpaceData.name?.toLowerCase() === targetSpace) {
+        const spTotal = (updatedActiveSpaceData.totalSpent || 0) + payload.amount;
+        const spToday = isToday ? (updatedActiveSpaceData.todaySpent || 0) + payload.amount : (updatedActiveSpaceData.todaySpent || 0);
+        const spBudget = updatedActiveSpaceData.monthlyBudget || 0;
+        const spRemaining = Math.max(0, spBudget - spTotal);
+        const spSafeLimit = updatedActiveSpaceData.dynamicSafeDailyBudget || updatedActiveSpaceData.safeDailyBudget || 0;
+        updatedActiveSpaceData = {
+          ...updatedActiveSpaceData,
+          totalSpent: spTotal,
+          todaySpent: spToday,
+          remainingBudget: spRemaining,
+          safeRemainingToday: spSafeLimit - spToday,
+        };
+      }
+
       return {
         ...prev,
         totalSpent: updatedTotal,
@@ -308,13 +352,15 @@ export const AppProvider = ({ children }) => {
         safeRemainingToday: safeRemToday,
         safeZoneKey: safeKey,
         safeZoneStatus: safeStatus,
+        spaces: updatedSpaces,
+        activeSpaceData: updatedActiveSpaceData,
         recentExpenses: [newExp, ...(prev.recentExpenses || [])],
       };
     });
 
     closeAddExpense();
 
-    // 2. BACKGROUND SERVER SYNC OR OFFLINE QUEUE
+    // 2. BACKGROUND SERVER SYNC OR OFFLINE QUEUE (Runs in background)
     try {
       const res = await api.createExpense(payload);
       if (res && res._isOffline) {
@@ -338,6 +384,96 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       console.error('Expense addition error:', err);
       showToast('Error saving expense, kept in local session.', 'error');
+    }
+  };
+
+  const updateExpenseOptimistic = async (id, payload, oldExpense) => {
+    const deltaAmount = payload.amount - (oldExpense?.amount || 0);
+    const isToday = toLocalISODate(payload.date) === todayDate;
+    const wasToday = oldExpense?.date ? toLocalISODate(oldExpense.date) === todayDate : false;
+
+    // 1. INSTANT LOCAL STATE UPDATE (0ms)
+    setDashboardData((prev) => {
+      if (!prev) return prev;
+      const updatedTotal = Math.max(0, prev.totalSpent + deltaAmount);
+      let updatedToday = prev.todaySpent;
+      if (isToday && wasToday) {
+        updatedToday = Math.max(0, prev.todaySpent + deltaAmount);
+      } else if (isToday && !wasToday) {
+        updatedToday = prev.todaySpent + payload.amount;
+      } else if (!isToday && wasToday) {
+        updatedToday = Math.max(0, prev.todaySpent - (oldExpense?.amount || 0));
+      }
+      const updatedRemaining = Math.max(0, prev.monthlyBudget - updatedTotal);
+      const effectiveLimit = prev.dynamicSafeDailyBudget || prev.safeDailyBudget || 0;
+
+      const targetSpace = (payload.space || activeSpace || 'Food & Dining').toLowerCase();
+      const updatedSpaces = (prev.spaces || []).map((sp) => {
+        if (sp?.name && sp.name.toLowerCase() === targetSpace) {
+          const spTotal = Math.max(0, (sp.totalSpent || 0) + deltaAmount);
+          let spToday = sp.todaySpent || 0;
+          if (isToday && wasToday) spToday = Math.max(0, spToday + deltaAmount);
+          else if (isToday && !wasToday) spToday = spToday + payload.amount;
+          else if (!isToday && wasToday) spToday = Math.max(0, spToday - (oldExpense?.amount || 0));
+          const spRemaining = Math.max(0, (sp.monthlyBudget || 0) - spTotal);
+          const spSafeLimit = sp.dynamicSafeDailyBudget || sp.safeDailyBudget || 0;
+          return {
+            ...sp,
+            totalSpent: spTotal,
+            todaySpent: spToday,
+            remainingBudget: spRemaining,
+            safeRemainingToday: spSafeLimit - spToday,
+          };
+        }
+        return sp;
+      });
+
+      let updatedActiveSpaceData = prev.activeSpaceData;
+      if (updatedActiveSpaceData && updatedActiveSpaceData.name?.toLowerCase() === targetSpace) {
+        const spTotal = Math.max(0, (updatedActiveSpaceData.totalSpent || 0) + deltaAmount);
+        let spToday = updatedActiveSpaceData.todaySpent || 0;
+        if (isToday && wasToday) spToday = Math.max(0, spToday + deltaAmount);
+        else if (isToday && !wasToday) spToday = spToday + payload.amount;
+        else if (!isToday && wasToday) spToday = Math.max(0, spToday - (oldExpense?.amount || 0));
+        const spRemaining = Math.max(0, (updatedActiveSpaceData.monthlyBudget || 0) - spTotal);
+        const spSafeLimit = updatedActiveSpaceData.dynamicSafeDailyBudget || updatedActiveSpaceData.safeDailyBudget || 0;
+        updatedActiveSpaceData = {
+          ...updatedActiveSpaceData,
+          totalSpent: spTotal,
+          todaySpent: spToday,
+          remainingBudget: spRemaining,
+          safeRemainingToday: spSafeLimit - spToday,
+        };
+      }
+
+      return {
+        ...prev,
+        totalSpent: updatedTotal,
+        todaySpent: updatedToday,
+        remainingBudget: updatedRemaining,
+        safeRemainingToday: effectiveLimit - updatedToday,
+        spaces: updatedSpaces,
+        activeSpaceData: updatedActiveSpaceData,
+        recentExpenses: (prev.recentExpenses || []).map((e) =>
+          e._id === id ? { ...e, ...payload } : e
+        ),
+      };
+    });
+
+    closeAddExpense();
+
+    // 2. BACKGROUND SERVER SYNC (Runs in background)
+    try {
+      const res = await api.updateExpense(id, payload);
+      if (res && res._isOffline) {
+        showToast('Updated offline. Will sync when online.', 'info');
+      } else {
+        showToast('Expense updated');
+      }
+      triggerRefresh();
+    } catch (err) {
+      console.error('Update expense error:', err);
+      showToast('Error saving update, kept locally.', 'error');
     }
   };
 
@@ -365,6 +501,41 @@ export const AppProvider = ({ children }) => {
         safeStatus = 'OVER SAFE LIMIT';
       }
 
+      const targetSpace = (expense.space || activeSpace || 'Food & Dining').toLowerCase();
+      const updatedSpaces = (prev.spaces || []).map((sp) => {
+        if (sp?.name && sp.name.toLowerCase() === targetSpace) {
+          const spTotal = Math.max(0, (sp.totalSpent || 0) - expense.amount);
+          const spToday = isToday ? Math.max(0, (sp.todaySpent || 0) - expense.amount) : (sp.todaySpent || 0);
+          const spBudget = sp.monthlyBudget || 0;
+          const spRemaining = Math.max(0, spBudget - spTotal);
+          const spSafeLimit = sp.dynamicSafeDailyBudget || sp.safeDailyBudget || 0;
+          return {
+            ...sp,
+            totalSpent: spTotal,
+            todaySpent: spToday,
+            remainingBudget: spRemaining,
+            safeRemainingToday: spSafeLimit - spToday,
+          };
+        }
+        return sp;
+      });
+
+      let updatedActiveSpaceData = prev.activeSpaceData;
+      if (updatedActiveSpaceData && updatedActiveSpaceData.name?.toLowerCase() === targetSpace) {
+        const spTotal = Math.max(0, (updatedActiveSpaceData.totalSpent || 0) - expense.amount);
+        const spToday = isToday ? Math.max(0, (updatedActiveSpaceData.todaySpent || 0) - expense.amount) : (updatedActiveSpaceData.todaySpent || 0);
+        const spBudget = updatedActiveSpaceData.monthlyBudget || 0;
+        const spRemaining = Math.max(0, spBudget - spTotal);
+        const spSafeLimit = updatedActiveSpaceData.dynamicSafeDailyBudget || updatedActiveSpaceData.safeDailyBudget || 0;
+        updatedActiveSpaceData = {
+          ...updatedActiveSpaceData,
+          totalSpent: spTotal,
+          todaySpent: spToday,
+          remainingBudget: spRemaining,
+          safeRemainingToday: spSafeLimit - spToday,
+        };
+      }
+
       return {
         ...prev,
         totalSpent: updatedTotal,
@@ -374,11 +545,13 @@ export const AppProvider = ({ children }) => {
         safeRemainingToday: effectiveLimit - updatedToday,
         safeZoneKey: safeKey,
         safeZoneStatus: safeStatus,
+        spaces: updatedSpaces,
+        activeSpaceData: updatedActiveSpaceData,
         recentExpenses: (prev.recentExpenses || []).filter((e) => e._id !== expense._id),
       };
     });
 
-    // 2. BACKGROUND SERVER SYNC OR OFFLINE QUEUE
+    // 2. BACKGROUND SERVER SYNC OR OFFLINE QUEUE (Runs in background)
     try {
       const res = await api.deleteExpense(expense._id);
       if (res && res._isOffline) {
@@ -511,6 +684,7 @@ export const AppProvider = ({ children }) => {
         prevMonth,
         nextMonth,
         addExpenseOptimistic,
+        updateExpenseOptimistic,
         deleteExpenseOptimistic,
         setBudgetOptimistic,
         resetBudgetOptimistic,

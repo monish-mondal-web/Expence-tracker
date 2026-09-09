@@ -17,6 +17,7 @@ export const AddExpenseModal = () => {
     triggerRefresh,
     showToast,
     addExpenseOptimistic,
+    updateExpenseOptimistic,
     todayDate,
     activeSpace,
   } = useApp();
@@ -230,21 +231,10 @@ export const AddExpenseModal = () => {
     };
 
     if (editingExpense) {
-      try {
-        setIsSubmitting(true);
-        await api.updateExpense(editingExpense._id, payload);
-        showToast('Expense updated');
-        triggerRefresh();
-        closeAddExpense();
-      } catch (err) {
-        showToast(err.message || 'Failed to update expense', 'error');
-      } finally {
-        setIsSubmitting(false);
-      }
+      updateExpenseOptimistic(editingExpense._id, payload, editingExpense);
     } else {
       // Optimistic create
       addExpenseOptimistic(payload);
-      closeAddExpense();
     }
   };
 

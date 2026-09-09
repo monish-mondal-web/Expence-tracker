@@ -27,6 +27,7 @@ export const MainLayout = ({ children }) => {
   const {
     activeTab,
     setActiveTab,
+    setActiveSpace,
     currentMonth,
     currentYear,
     prevMonth,
@@ -148,7 +149,10 @@ export const MainLayout = ({ children }) => {
           <button
             type="button"
             className={`bottom-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => {
+              setActiveTab('dashboard');
+              setActiveSpace('Food & Dining');
+            }}
           >
             <div className="nav-icon-box">
               <Home size={20} strokeWidth={activeTab === 'dashboard' ? 2.4 : 1.8} />
