@@ -34,8 +34,8 @@ export const SpaceSwitcher = () => {
   const spaceMap = new Map();
 
   // Find Food & Dining data
-  const foodServer = serverSpaces.find((s) => s.name.toLowerCase() === 'food & dining');
-  const foodBreakdown = categoryBreakdown.find((c) => c.category.toLowerCase() === 'food & dining');
+  const foodServer = serverSpaces.find((s) => String(s?.name || '').toLowerCase() === 'food & dining');
+  const foodBreakdown = categoryBreakdown.find((c) => String(c?.category || '').toLowerCase() === 'food & dining');
   const foodBudget = foodServer?.monthlyBudget || foodBreakdown?.budget || dashboardData?.monthlyBudget || 0;
   const foodSpent = foodServer?.totalSpent || foodBreakdown?.spent || dashboardData?.totalSpent || 0;
 
@@ -51,7 +51,8 @@ export const SpaceSwitcher = () => {
 
   // Collect from serverSpaces
   serverSpaces.forEach((s) => {
-    const lower = s.name.toLowerCase().trim();
+    if (!s || !s.name) return;
+    const lower = String(s.name).toLowerCase().trim();
     if (lower === 'food & dining' || FOOD_SUB_NAMES.has(lower)) return;
     const b = s.monthlyBudget || 0;
     const sp = s.totalSpent || 0;
@@ -68,7 +69,8 @@ export const SpaceSwitcher = () => {
 
   // Collect from categoryBreakdown
   categoryBreakdown.forEach((cb) => {
-    const lower = cb.category.toLowerCase().trim();
+    if (!cb || !cb.category) return;
+    const lower = String(cb.category).toLowerCase().trim();
     if (lower === 'food & dining' || FOOD_SUB_NAMES.has(lower)) return;
     const b = cb.budget || 0;
     const sp = cb.spent || 0;
@@ -93,7 +95,7 @@ export const SpaceSwitcher = () => {
 
   // Add preset spaces fallback if not already added
   PRESET_SPACES.forEach((name) => {
-    const lower = name.toLowerCase();
+    const lower = String(name).toLowerCase();
     if (!spaceMap.has(lower)) {
       let icon = 'Utensils';
       let color = '#10B981';
@@ -115,7 +117,8 @@ export const SpaceSwitcher = () => {
   // Add custom categories if not present
   if (Array.isArray(categories)) {
     categories.forEach((c) => {
-      const lower = c.name.toLowerCase().trim();
+      if (!c || !c.name) return;
+      const lower = String(c.name).toLowerCase().trim();
       if (!spaceMap.has(lower) && !FOOD_SUB_NAMES.has(lower)) {
         spaceMap.set(lower, {
           name: c.name,
@@ -131,26 +134,26 @@ export const SpaceSwitcher = () => {
   }
 
   // Separate Food & Dining from other spaces
-  const spacesList = Array.from(spaceMap.values());
-  const foodSpace = spacesList.find((s) => s.name.toLowerCase() === 'food & dining');
-  const otherSpaces = spacesList.filter((s) => s.name.toLowerCase() !== 'food & dining');
+  const spacesList = Array.from(spaceMap.values()).filter((s) => s && s.name);
+  const foodSpace = spacesList.find((s) => String(s.name).toLowerCase() === 'food & dining');
+  const otherSpaces = spacesList.filter((s) => String(s.name).toLowerCase() !== 'food & dining');
 
   // Sort other spaces:
   // 1. Those with money (monthlyBudget > 0 or totalSpent > 0) come first, sorted by amount descending
   // 2. Spaces without money come after
   otherSpaces.sort((a, b) => {
-    const aVal = Math.max(a.monthlyBudget || 0, a.totalSpent || 0);
-    const bVal = Math.max(b.monthlyBudget || 0, b.totalSpent || 0);
+    const aVal = Math.max(a?.monthlyBudget || 0, a?.totalSpent || 0);
+    const bVal = Math.max(b?.monthlyBudget || 0, b?.totalSpent || 0);
 
     if (aVal > 0 && bVal === 0) return -1;
     if (aVal === 0 && bVal > 0) return 1;
     if (aVal > 0 && bVal > 0) return bVal - aVal;
 
-    const aIsPreset = PRESET_SPACES.some((p) => p.toLowerCase() === a.name.toLowerCase());
-    const bIsPreset = PRESET_SPACES.some((p) => p.toLowerCase() === b.name.toLowerCase());
+    const aIsPreset = PRESET_SPACES.some((p) => p.toLowerCase() === String(a?.name || '').toLowerCase());
+    const bIsPreset = PRESET_SPACES.some((p) => p.toLowerCase() === String(b?.name || '').toLowerCase());
     if (aIsPreset && !bIsPreset) return -1;
     if (!aIsPreset && bIsPreset) return 1;
-    return a.name.localeCompare(b.name);
+    return String(a?.name || '').localeCompare(String(b?.name || ''));
   });
 
   const displaySpaces = foodSpace ? [foodSpace, ...otherSpaces] : otherSpaces;
@@ -170,8 +173,9 @@ export const SpaceSwitcher = () => {
 
         {/* Dynamic Space Pills */}
         {displaySpaces.map((space) => {
-          const isActive = activeSpace?.toLowerCase() === space.name.toLowerCase();
-          const serverSpaceObj = serverSpaces.find((s) => s.name.toLowerCase() === space.name.toLowerCase());
+          if (!space || !space.name) return null;
+          const isActive = String(activeSpace || '').toLowerCase() === String(space.name).toLowerCase();
+          const serverSpaceObj = serverSpaces.find((s) => String(s?.name || '').toLowerCase() === String(space.name).toLowerCase());
           const budget = serverSpaceObj?.monthlyBudget || space.monthlyBudget || 0;
 
           return (

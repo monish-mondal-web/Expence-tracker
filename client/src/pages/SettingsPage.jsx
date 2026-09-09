@@ -402,41 +402,57 @@ export const SettingsPage = () => {
             gap: '1.2rem',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Plus size={16} color="#059669" strokeWidth={2.5} />
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+              <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
+                <Plus size={16} color="#059669" strokeWidth={2.5} />
+              </div>
+              <div>
                 <h3 style={{ fontSize: '1.02rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
                   Add Custom Expense Category
                 </h3>
+                <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '3px 0 0' }}>
+                  Pick an icon, select color, name it, and link to a Space.
+                </p>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#64748B', margin: '3px 0 0' }}>
-                Pick an icon (Maid, Chef, Rent, Travel, etc.), select a theme color, name it, and link to a Space.
-              </p>
             </div>
 
             {/* Live Preview Pill */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#F8FAFC', padding: '0.35rem 0.8rem', borderRadius: '9999px', border: '1px solid #E2E8F0' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Preview:</span>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                background: '#F8FAFC',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '12px',
+                border: '1px solid #E2E8F0',
+                alignSelf: 'flex-start',
+                maxWidth: '100%',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', flexShrink: 0 }}>
+                PREVIEW:
+              </span>
               <div
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
                   padding: '3px 10px',
-                  borderRadius: '10px',
+                  borderRadius: '8px',
                   background: `${newCatColor}18`,
                   border: `1px solid ${newCatColor}35`,
                   color: newCatColor,
+                  maxWidth: '100%',
                 }}
               >
                 <CategoryIcon name={newCatIcon} size={15} color={newCatColor} />
                 <strong style={{ fontSize: '0.82rem' }}>
                   {newCatName.trim() || 'New Category'}
                 </strong>
-                <span style={{ fontSize: '0.7rem', opacity: 0.75, marginLeft: '3px' }}>
+                <span style={{ fontSize: '0.72rem', opacity: 0.85, whiteSpace: 'nowrap' }}>
                   ({newCatSpace})
                 </span>
               </div>
