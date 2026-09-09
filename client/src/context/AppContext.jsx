@@ -81,9 +81,22 @@ export const AppProvider = ({ children }) => {
 
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Cached dashboard state for instant optimistic updates
-  const [dashboardData, setDashboardData] = useState(null);
-  const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  // Cached dashboard state for instant optimistic updates (0ms load from local storage)
+  const [dashboardData, setDashboardData] = useState(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('pk_cached_dashboard_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
+  });
+  const [isDashboardLoading, setIsDashboardLoading] = useState(false);
 
   // Spaces management - defaults to 'Food & Dining' on every page refresh/reload
   const [activeSpace, setActiveSpaceState] = useState('Food & Dining');
@@ -168,15 +181,48 @@ export const AppProvider = ({ children }) => {
     };
   }, [showToast, triggerRefresh]);
 
-  // Fetch dashboard data (with offline cache recovery)
+  // Fetch dashboard data (with local cache persistence and smooth online back sync)
   const loadDashboard = useCallback(async () => {
     try {
       const res = await api.getDashboard(currentMonth, currentYear, todayDate, activeSpace);
       if (res && res.data) {
-        setDashboardData(res.data);
+        setDashboardData((prev) => {
+          // If MongoDB returned hasBudget: false, but local previously had a valid budget,
+          // protect the user's budget from being wiped by an uninitialized/partial DB response!
+          const serverHasBudget = Boolean(res.data.hasBudget) && (Number(res.data.monthlyBudget) || 0) > 0;
+          const localHasBudget = Boolean(prev?.hasBudget) && (Number(prev?.monthlyBudget) || 0) > 0;
+
+          if (!serverHasBudget && localHasBudget) {
+            const preserved = {
+              ...res.data,
+              hasBudget: true,
+              monthlyBudget: prev.monthlyBudget,
+              spaces: prev.spaces || res.data.spaces,
+            };
+            try {
+              localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(preserved));
+            } catch (e) {}
+            return preserved;
+          }
+
+          try {
+            localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(res.data));
+          } catch (e) {}
+          return res.data;
+        });
       }
     } catch (err) {
-      console.warn('Dashboard fetch error (checking local cache):', err);
+      console.warn('Dashboard fetch error (using local cache):', err);
+      // Ensure we keep local cached data
+      try {
+        if (typeof window !== 'undefined') {
+          const saved = localStorage.getItem('pk_cached_dashboard_v1');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed) setDashboardData(parsed);
+          }
+        }
+      } catch (e) {}
     } finally {
       setIsDashboardLoading(false);
     }
@@ -574,23 +620,30 @@ export const AppProvider = ({ children }) => {
 
     // 1. INSTANT LOCAL STATE UPDATE
     setDashboardData((prev) => {
-      if (!prev) return prev;
+      const prevSpent = prev?.totalSpent || 0;
+      const prevToday = prev?.todaySpent || 0;
       const baseDaily = Math.round((num / 30) * 100) / 100;
       const safeDaily = Math.round((baseDaily * 0.7) * 100) / 100;
-      const remaining = num - prev.totalSpent;
-      const pct = num > 0 ? Math.min(100, Math.round((prev.totalSpent / num) * 1000) / 10) : 0;
+      const remaining = num - prevSpent;
+      const pct = num > 0 ? Math.min(100, Math.round((prevSpent / num) * 1000) / 10) : 0;
 
-      return {
-        ...prev,
+      const updated = {
+        ...(prev || {}),
         hasBudget: num > 0,
         monthlyBudget: num,
         baseDailyBudget: baseDaily,
         safeDailyBudget: safeDaily,
         remainingBudget: remaining,
         budgetUsedPercentage: pct,
-        safeRemainingToday: safeDaily - prev.todaySpent,
+        safeRemainingToday: safeDaily - prevToday,
         categoryBudgets,
       };
+
+      try {
+        localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(updated));
+      } catch (e) {}
+
+      return updated;
     });
 
     closeSetBudget();

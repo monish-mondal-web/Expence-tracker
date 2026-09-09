@@ -79,27 +79,53 @@ export const MainBudgetCard = ({
   const cardIcon = isSpaceMode ? (spaceObj?.icon || 'Utensils') : 'ArrowUpRight';
   const cardColor = isSpaceMode ? (spaceObj?.color || '#34D399') : '#34D399';
 
-  const budget = isSpaceMode ? (spaceObj?.monthlyBudget || 0) : (data?.monthlyBudget || 0);
-  const hasBudget = isSpaceMode ? (spaceObj?.hasBudget && budget > 0) : (data?.hasBudget && budget > 0);
-  const categoryBreakdown = data?.categoryBreakdown || [];
+  // Local cached fallback if MongoDB data is loading or temporarily delayed
+  const localFallback = useMemo(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('pk_cached_dashboard_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            if (isSpaceMode) {
+              const sp = parsed.spaces?.find((s) => s.name?.toLowerCase() === activeSpace?.toLowerCase());
+              if (sp && (Number(sp.monthlyBudget) || 0) > 0) {
+                return sp;
+              }
+            }
+            if ((Number(parsed.monthlyBudget) || 0) > 0) {
+              return parsed;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+    return null;
+  }, [activeSpace, isSpaceMode]);
 
-  const totalSpent = isSpaceMode ? (spaceObj?.totalSpent || 0) : (data?.totalSpent || 0);
-  const remainingBudget = isSpaceMode ? (spaceObj?.remainingBudget || 0) : (data?.remainingBudget || 0);
-  const remainingDays = data?.remainingDays !== undefined ? data.remainingDays : 0;
+  const rawBudget = isSpaceMode ? (spaceObj?.monthlyBudget || 0) : (data?.monthlyBudget || 0);
+  const budget = rawBudget > 0 ? rawBudget : (Number(localFallback?.monthlyBudget) || 0);
+  const hasBudget = Boolean((isSpaceMode ? (spaceObj?.hasBudget && rawBudget > 0) : (data?.hasBudget && rawBudget > 0)) || budget > 0);
+  const categoryBreakdown = data?.categoryBreakdown || localFallback?.categoryBreakdown || [];
+
+  const totalSpent = (isSpaceMode ? spaceObj?.totalSpent : data?.totalSpent) ?? (localFallback?.totalSpent ?? 0);
+  const rawRemaining = isSpaceMode ? spaceObj?.remainingBudget : data?.remainingBudget;
+  const remainingBudget = rawRemaining !== undefined ? rawRemaining : (budget - totalSpent);
+  const remainingDays = data?.remainingDays !== undefined ? data.remainingDays : 21;
   const dynamicSafeDailyBudget = isSpaceMode
-    ? (spaceObj?.dynamicSafeDailyBudget || spaceObj?.safeDailyBudget || 0)
-    : (data?.dynamicSafeDailyBudget || 0);
+    ? (spaceObj?.dynamicSafeDailyBudget || spaceObj?.safeDailyBudget || localFallback?.dynamicSafeDailyBudget || 0)
+    : (data?.dynamicSafeDailyBudget || localFallback?.dynamicSafeDailyBudget || 0);
   const safeDailyBudget = isSpaceMode
-    ? (spaceObj?.safeDailyBudget || 0)
-    : (data?.safeDailyBudget || 0);
-  const effectiveSafeDaily = dynamicSafeDailyBudget || safeDailyBudget || 0;
+    ? (spaceObj?.safeDailyBudget || localFallback?.safeDailyBudget || 0)
+    : (data?.safeDailyBudget || localFallback?.safeDailyBudget || 0);
+  const effectiveSafeDaily = dynamicSafeDailyBudget || safeDailyBudget || (remainingBudget > 0 ? Math.round((remainingBudget / (remainingDays || 30)) * 100) / 100 : 0);
 
   const dynamicDailyBudget = isSpaceMode
-    ? (spaceObj?.dynamicDailyBudget || 0)
-    : (data?.dynamicDailyBudget || 0);
+    ? (spaceObj?.dynamicDailyBudget || localFallback?.dynamicDailyBudget || 0)
+    : (data?.dynamicDailyBudget || localFallback?.dynamicDailyBudget || 0);
   const baseDailyBudget = isSpaceMode
-    ? (spaceObj?.baseDailyBudget || 0)
-    : (data?.baseDailyBudget || 0);
+    ? (spaceObj?.baseDailyBudget || localFallback?.baseDailyBudget || 0)
+    : (data?.baseDailyBudget || localFallback?.baseDailyBudget || 0);
 
   const maxDailyLimit = remainingBudget <= 0
     ? 0
@@ -111,7 +137,7 @@ export const MainBudgetCard = ({
                 ? baseDailyBudget
                 : (budget > 0 ? Math.round((budget / 30) * 100) / 100 : 0))));
 
-  const todaySpent = isSpaceMode ? (spaceObj?.todaySpent || 0) : (data?.todaySpent || 0);
+  const todaySpent = (isSpaceMode ? spaceObj?.todaySpent : data?.todaySpent) ?? (localFallback?.todaySpent ?? 0);
   const smartMessage = isSpaceMode ? (spaceObj?.smartMessage || '') : (data?.smartMessage || '');
 
   // Remaining in today's daily limit (negative if over limit)

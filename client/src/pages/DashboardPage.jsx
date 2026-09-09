@@ -42,47 +42,30 @@ export const DashboardPage = () => {
     if (!currentUserKey) return;
     if (promptedUserKeyRef.current === currentUserKey) return;
 
-    // Check if user has budget doc or any monthly budget amount set
+    // Check if user has budget doc or any monthly budget amount set (either server or local cache)
+    let localSavedBudget = 0;
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('pk_cached_dashboard_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          localSavedBudget = Number(parsed?.monthlyBudget) || 0;
+        }
+      }
+    } catch (e) {}
+
     const hasBudgetDoc =
-      Boolean(dashboardData?.hasBudget) &&
-      (Number(dashboardData?.monthlyBudget) || 0) > 0;
+      (Boolean(dashboardData?.hasBudget) && (Number(dashboardData?.monthlyBudget) || 0) > 0) ||
+      localSavedBudget > 0;
 
-    let spaceCount = 0;
-
+    // If user already has a budget (locally or on server), NEVER auto-prompt!
     if (hasBudgetDoc) {
-      const rawCategoryBudgets = dashboardData?.categoryBudgets || [];
-      const validBudgets = rawCategoryBudgets.filter((cb) => (Number(cb?.amount) || 0) > 0);
-
-      const serverSpaces = dashboardData?.spaces || [];
-      const budgetedSpaces = serverSpaces.filter((s) => (Number(s?.monthlyBudget) || 0) > 0);
-
-      const breakdown = dashboardData?.categoryBreakdown || [];
-      const budgetedBreakdown = breakdown.filter((b) => (Number(b?.budget) || 0) > 0);
-
-      const distinctBudgetedNames = new Set([
-        ...validBudgets.map((cb) => (cb.category || '').toLowerCase().trim()),
-        ...budgetedSpaces.map((s) => (s.name || '').toLowerCase().trim()),
-        ...budgetedBreakdown.map((b) => (b.category || '').toLowerCase().trim()),
-      ]);
-      distinctBudgetedNames.delete('');
-
-      spaceCount = Math.max(validBudgets.length, distinctBudgetedNames.size);
-    } else {
-      spaceCount = 0;
-    }
-
-    // Rule 4: 3 or more spaces set (or monthly limit already complete) -> NEVER PROMPT!
-    if (spaceCount >= 3) {
       promptedUserKeyRef.current = currentUserKey;
       return;
     }
 
-    // Rule 1: 0 spaces set -> auto prompt every open/refresh
-    if (spaceCount === 0) {
-      promptedUserKeyRef.current = currentUserKey;
-      openSetBudget();
-      return;
-    }
+    // Only prompt if user is truly brand new with 0 budget configured anywhere
+    let spaceCount = 0;
 
     // Rule 2: 1 space set -> Daily 1 time
     if (spaceCount === 1) {

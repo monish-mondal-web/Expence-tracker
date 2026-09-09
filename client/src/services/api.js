@@ -293,7 +293,21 @@ async function assembleOfflineDashboard(urlPath) {
 
     // Check if any recent cached dashboard exists
     const cachedAnyDash = (await getCachedData('/dashboard')) || (await getCachedData(urlPath));
-    const cachedData = cachedAnyDash?.data || cachedAnyDash || {};
+    let cachedData = cachedAnyDash?.data || cachedAnyDash || {};
+
+    // Also check localStorage for local persisted dashboard/budget
+    try {
+      if (typeof window !== 'undefined') {
+        const localSaved = localStorage.getItem('pk_cached_dashboard_v1');
+        if (localSaved) {
+          const parsed = JSON.parse(localSaved);
+          if (parsed && typeof parsed === 'object') {
+            cachedData = { ...parsed, ...cachedData };
+          }
+        }
+      }
+    } catch (e) {}
+
     const baseBudget = Number(cachedData.monthlyBudget) || 3000;
 
     const allExpenses = await getAllOfflineExpenses();
@@ -461,6 +475,11 @@ async function request(endpoint, options = {}) {
 
       // Cache successful response for offline use
       setCachedData(cacheKey, data);
+      try {
+        if (endpoint.startsWith('/dashboard') && data && data.data) {
+          localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(data.data));
+        }
+      } catch (e) {}
 
       // If fetching expenses, save to offline expenses store as well
       if (endpoint.startsWith('/expenses') && data.data && Array.isArray(data.data)) {
@@ -469,12 +488,15 @@ async function request(endpoint, options = {}) {
 
       return data;
     } catch (err) {
-      // If network failed or timed out, attempt offline cache/synthesis
-      if (isNetworkError(err)) {
+      // If network failed, timed out, OR server/MongoDB errored, fall back to offline cache/synthesis
+      console.warn(`[API] Online request failed for ${endpoint}, using local cache:`, err.message);
+      try {
         const offlineResult = await resolveOfflineGet(endpoint);
         if (offlineResult) {
           return offlineResult;
         }
+      } catch (offlineErr) {
+        console.warn(`[API] Offline fallback failed for ${endpoint}:`, offlineErr);
       }
       throw err;
     }
