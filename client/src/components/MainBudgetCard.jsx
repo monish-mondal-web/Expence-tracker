@@ -79,7 +79,7 @@ export const MainBudgetCard = ({
   const cardIcon = isSpaceMode ? (spaceObj?.icon || 'Utensils') : 'ArrowUpRight';
   const cardColor = isSpaceMode ? (spaceObj?.color || '#34D399') : '#34D399';
 
-  // Local cached fallback if MongoDB data is loading or temporarily delayed
+  // Local cached fallback if MongoDB data is loading or temporarily delayed (only matching current month)
   const localFallback = useMemo(() => {
     try {
       if (typeof window !== 'undefined') {
@@ -87,6 +87,10 @@ export const MainBudgetCard = ({
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed === 'object') {
+            // Strictly scope cache fallback to current view's month & year!
+            if (data?.month && parsed.month && (parsed.month !== data.month || parsed.year !== data.year)) {
+              return null;
+            }
             if (isSpaceMode) {
               const sp = parsed.spaces?.find((s) => s.name?.toLowerCase() === activeSpace?.toLowerCase());
               if (sp && (Number(sp.monthlyBudget) || 0) > 0) {
@@ -99,13 +103,13 @@ export const MainBudgetCard = ({
           }
         }
       }
-    } catch (e) {}
+    } catch {}
     return null;
-  }, [activeSpace, isSpaceMode]);
+  }, [activeSpace, isSpaceMode, data?.month, data?.year]);
 
   const rawBudget = isSpaceMode ? (spaceObj?.monthlyBudget || 0) : (data?.monthlyBudget || 0);
   const budget = rawBudget > 0 ? rawBudget : (Number(localFallback?.monthlyBudget) || 0);
-  const hasBudget = Boolean((isSpaceMode ? (spaceObj?.hasBudget && rawBudget > 0) : (data?.hasBudget && rawBudget > 0)) || budget > 0);
+  const hasBudget = Boolean((isSpaceMode ? (spaceObj?.hasBudget && rawBudget > 0) : (data?.hasBudget && budget > 0)));
   const categoryBreakdown = data?.categoryBreakdown || localFallback?.categoryBreakdown || [];
 
   const totalSpent = (isSpaceMode ? spaceObj?.totalSpent : data?.totalSpent) ?? (localFallback?.totalSpent ?? 0);

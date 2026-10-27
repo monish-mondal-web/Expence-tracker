@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatCurrency } from '../utils/currency';
 import { toLocalISODate, formatFullDate } from '../utils/date';
 import { useApp } from '../context/AppContext';
@@ -7,6 +7,37 @@ import { Plus, Calendar as CalendarIcon, CheckCircle2 } from 'lucide-react';
 export const CalendarView = ({ calendarData = {}, month, year }) => {
   const { openAddExpense, todayDate } = useApp();
   const [selectedDateStr, setSelectedDateStr] = useState(todayDate);
+
+  // Synchronize selected date when viewing different months
+  useEffect(() => {
+    const currentMonthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+    const isCurrentActiveMonth = todayDate.startsWith(currentMonthPrefix);
+
+    if (isCurrentActiveMonth) {
+      setSelectedDateStr(todayDate);
+      return;
+    }
+
+    // Keep user's selected date if already pointing to a day within this month
+    if (selectedDateStr && selectedDateStr.startsWith(currentMonthPrefix)) {
+      return;
+    }
+
+    // If viewing an older or future month, auto-select a date with spending so old data is immediately shown!
+    if (calendarData && calendarData.calendarDays) {
+      const daysWithSpend = Object.keys(calendarData.calendarDays).filter(
+        (dk) => dk.startsWith(currentMonthPrefix) && (calendarData.calendarDays[dk]?.totalSpent > 0)
+      );
+      if (daysWithSpend.length > 0) {
+        daysWithSpend.sort();
+        setSelectedDateStr(daysWithSpend[daysWithSpend.length - 1]);
+        return;
+      }
+    }
+
+    // Default to the 1st of that month
+    setSelectedDateStr(`${currentMonthPrefix}-01`);
+  }, [month, year, todayDate, calendarData]);
 
   const daysInMonth = new Date(year, month, 0).getDate();
   const firstDayOfWeek = new Date(year, month - 1, 1).getDay(); // 0 = Sun

@@ -4,15 +4,20 @@ import {
   saveOfflineExpense,
   deleteOfflineExpense,
   saveMultipleOfflineExpenses,
+  syncExpensesWithServer,
   getAllOfflineExpenses,
   addToSyncQueue,
   getSyncQueue,
   removeSyncQueueItem,
+  removeMutationsForTempId,
+  updateMutationBody,
   getPendingSyncCount,
   notifySyncListeners,
   registerIdMapping,
   resolveRealId,
+  clearAllOfflineData,
 } from './offlineStorage';
+import { toLocalISODate } from '../utils/date';
 
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const TIMEOUT_MS = 6500;
@@ -42,7 +47,7 @@ function isNetworkError(err) {
 }
 
 // -------------------------------------------------------------
-// OFFLINE SYNTHESIS ENGINES (Calculates accurate data from IndexedDB)
+// OFFLINE SYNTHESIS ENGINES (Calculates accurate dynamic data from IndexedDB)
 // -------------------------------------------------------------
 
 // 1. Synthesize Expenses list with Search, Category filter, and Sorting
@@ -59,6 +64,7 @@ async function assembleOfflineExpenses(urlPath) {
 
     if (month && year) {
       expenses = expenses.filter((e) => {
+        if (!e.date) return false;
         const d = new Date(e.date);
         return d.getMonth() + 1 === month && d.getFullYear() === year;
       });
@@ -97,7 +103,7 @@ async function assembleOfflineExpenses(urlPath) {
     return {
       success: true,
       data: expenses,
-      totalAmount,
+      totalAmount: Math.round(totalAmount * 100) / 100,
       _fromCache: true,
       _isOffline: true,
     };
@@ -117,14 +123,20 @@ async function assembleOfflineCalendar(urlPath) {
 
     const allExpenses = await getAllOfflineExpenses();
     const monthExpenses = allExpenses.filter((e) => {
+      if (!e.date) return false;
+      const str = typeof e.date === 'string' ? e.date : (e.date?.toISOString ? e.date.toISOString() : String(e.date));
+      const m = str.match(/^(\d{4})-(\d{2})/);
+      if (m) {
+        return parseInt(m[1], 10) === year && parseInt(m[2], 10) === month;
+      }
       const d = new Date(e.date);
       return d.getMonth() + 1 === month && d.getFullYear() === year;
     });
 
     const daysMap = {};
     monthExpenses.forEach((e) => {
+      const dateKey = toLocalISODate(e.date);
       const d = new Date(e.date);
-      const dateKey = d.toISOString().slice(0, 10);
       if (!daysMap[dateKey]) {
         daysMap[dateKey] = {
           date: dateKey,
@@ -164,7 +176,7 @@ async function assembleOfflineCalendar(urlPath) {
   }
 }
 
-// 3. Synthesize Analytics and Charts
+// 3. Synthesize Analytics (Daily spending bar charts & Category breakdown)
 async function assembleOfflineAnalytics(urlPath) {
   try {
     const url = new URL(urlPath, 'http://localhost');
@@ -174,15 +186,29 @@ async function assembleOfflineAnalytics(urlPath) {
 
     const allExpenses = await getAllOfflineExpenses();
     const monthExpenses = allExpenses.filter((e) => {
+      if (!e.date) return false;
       const d = new Date(e.date);
       return d.getMonth() + 1 === month && d.getFullYear() === year;
     });
 
     const totalSpent = monthExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
-    // Read cached budget or default
+    // Read cached dashboard budget or default
     const cachedDash = await getCachedData(`/dashboard?month=${month}&year=${year}`);
-    const monthlyBudget = cachedDash?.monthlyBudget || 3000;
+    let monthlyBudget = cachedDash?.data?.monthlyBudget || cachedDash?.monthlyBudget;
+    if (!monthlyBudget) {
+      try {
+        const localSaved = localStorage.getItem('pk_cached_dashboard_v1');
+        if (localSaved) {
+          const parsed = JSON.parse(localSaved);
+          if (parsed && (!parsed.month || (parsed.month === month && parsed.year === year))) {
+            monthlyBudget = Number(parsed?.monthlyBudget) || 0;
+          }
+        }
+      } catch (e) {}
+    }
+    if (!monthlyBudget) monthlyBudget = 0;
+
     const remainingBudget = Math.max(0, monthlyBudget - totalSpent);
     const budgetUsedPercentage = monthlyBudget > 0 ? Math.min(100, Math.round((totalSpent / monthlyBudget) * 100)) : 0;
 
@@ -266,16 +292,19 @@ async function assembleOfflineAnalytics(urlPath) {
 
 // 4. Default categories for offline use
 function assembleOfflineCategories() {
+  const defaults = [
+    { name: 'Food & Dining', icon: 'Utensils', color: '#10B981' },
+    { name: 'Breakfast', icon: 'Coffee', color: '#F59E0B' },
+    { name: 'Lunch', icon: 'Sandwich', color: '#10B981' },
+    { name: 'Dinner', icon: 'Utensils', color: '#6366F1' },
+    { name: 'Snacks', icon: 'Cookie', color: '#EC4899' },
+    { name: 'Groceries', icon: 'ShoppingCart', color: '#8B5CF6' },
+    { name: 'Beverages', icon: 'Wine', color: '#06B6D4' },
+    { name: 'Delivery', icon: 'Truck', color: '#F97316' },
+  ];
   return {
     success: true,
-    data: [
-      { _id: 'cat_1', name: 'Breakfast', icon: 'Coffee', color: '#F59E0B' },
-      { _id: 'cat_2', name: 'Lunch', icon: 'Utensils', color: '#10B981' },
-      { _id: 'cat_3', name: 'Dinner', icon: 'Moon', color: '#6366F1' },
-      { _id: 'cat_4', name: 'Snacks', icon: 'Cookie', color: '#EC4899' },
-      { _id: 'cat_5', name: 'Groceries', icon: 'ShoppingBag', color: '#06B6D4' },
-      { _id: 'cat_6', name: 'Meat / Fish', icon: 'Fish', color: '#EF4444' },
-    ],
+    data: defaults,
     _fromCache: true,
     _isOffline: true,
   };
@@ -288,46 +317,48 @@ async function assembleOfflineDashboard(urlPath) {
     const now = new Date();
     const month = Number(url.searchParams.get('month')) || now.getMonth() + 1;
     const year = Number(url.searchParams.get('year')) || now.getFullYear();
-    const today = url.searchParams.get('today') || now.toISOString().slice(0, 10);
-    const space = url.searchParams.get('space') || 'Food & Dining';
+    const today = url.searchParams.get('today') || toLocalISODate(now);
 
-    // Check if any recent cached dashboard exists
-    const cachedAnyDash = (await getCachedData('/dashboard')) || (await getCachedData(urlPath));
-    let cachedData = cachedAnyDash?.data || cachedAnyDash || {};
-
-    // Also check localStorage for local persisted dashboard/budget
+    // Check localStorage for persisted dashboard state (only matching this month & year)
+    let cachedData = {};
     try {
       if (typeof window !== 'undefined') {
         const localSaved = localStorage.getItem('pk_cached_dashboard_v1');
         if (localSaved) {
           const parsed = JSON.parse(localSaved);
           if (parsed && typeof parsed === 'object') {
-            cachedData = { ...parsed, ...cachedData };
+            if (!parsed.month || (parsed.month === month && parsed.year === year)) {
+              cachedData = parsed;
+            }
           }
         }
       }
-    } catch (e) {}
+    } catch {}
 
-    const baseBudget = Number(cachedData.monthlyBudget) || 3000;
+    const baseBudget = Number(cachedData.monthlyBudget) || 0;
+    const hasBudget = Boolean(cachedData.hasBudget) && baseBudget > 0;
 
     const allExpenses = await getAllOfflineExpenses();
     const monthExpenses = allExpenses.filter((e) => {
-      const d = new Date(e.date);
-      return d.getMonth() + 1 === month && d.getFullYear() === year;
+      if (!e.date) return false;
+      const dateStr = toLocalISODate(e.date);
+      if (!dateStr) return false;
+      const [y, m] = dateStr.split('-').map(Number);
+      return m === month && y === year;
     });
 
     const totalSpent = monthExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
     const todaySpent = monthExpenses
-      .filter((e) => (e.date || '').slice(0, 10) === today)
+      .filter((e) => toLocalISODate(e.date) === today)
       .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 
     const daysInMonth = new Date(year, month, 0).getDate();
     const currentDay = Math.min(now.getDate(), daysInMonth);
     const remainingDays = Math.max(1, daysInMonth - currentDay);
     const remainingBudget = Math.max(0, baseBudget - totalSpent);
-    const safeDailyBudget = remainingDays > 0 ? Math.round((remainingBudget / remainingDays) * 100) / 100 : 0;
+    const safeDailyBudget = hasBudget && remainingDays > 0 ? Math.round((remainingBudget / remainingDays) * 100) / 100 : 0;
     const dynamicSafeDailyBudget = safeDailyBudget;
-    const safeRemainingToday = Math.round((safeDailyBudget - todaySpent) * 100) / 100;
+    const safeRemainingToday = hasBudget ? Math.round((safeDailyBudget - todaySpent) * 100) / 100 : 0;
 
     // Recent 5 expenses
     const sorted = [...monthExpenses].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -349,7 +380,7 @@ async function assembleOfflineDashboard(urlPath) {
     return {
       success: true,
       data: {
-        hasBudget: true,
+        hasBudget,
         monthlyBudget: baseBudget,
         totalSpent: Math.round(totalSpent * 100) / 100,
         remainingBudget: Math.round(remainingBudget * 100) / 100,
@@ -364,7 +395,9 @@ async function assembleOfflineDashboard(urlPath) {
         month,
         year,
         today,
-        smartMessage: 'Offline Mode: Changes saved locally and will auto-sync when online.',
+        smartMessage: hasBudget
+          ? 'Offline Mode: Changes saved locally and will auto-sync when online.'
+          : 'New month started. Set your monthly budget to track spending.',
       },
       _fromCache: true,
       _isOffline: true,
@@ -374,14 +407,14 @@ async function assembleOfflineDashboard(urlPath) {
     return {
       success: true,
       data: {
-        hasBudget: true,
-        monthlyBudget: 3000,
+        hasBudget: false,
+        monthlyBudget: 0,
         totalSpent: 0,
-        remainingBudget: 3000,
+        remainingBudget: 0,
         todaySpent: 0,
-        safeDailyBudget: 100,
-        dynamicSafeDailyBudget: 100,
-        safeRemainingToday: 100,
+        safeDailyBudget: 0,
+        dynamicSafeDailyBudget: 0,
+        safeRemainingToday: 0,
         remainingDays: 30,
         recentExpenses: [],
         categoryBreakdown: [],
@@ -393,12 +426,9 @@ async function assembleOfflineDashboard(urlPath) {
 }
 
 // Fallback router for any offline GET endpoint
+// NOTE: Dynamic endpoints (/dashboard, /expenses, /calendar, /analytics) MUST run their synthesis
+// engine so dynamic additions and deletions are accurately reflected rather than returning stale frozen cache!
 async function resolveOfflineGet(endpoint) {
-  const cached = await getCachedData(endpoint);
-  if (cached) {
-    return { ...cached, _fromCache: true, _isOffline: true };
-  }
-
   if (endpoint.startsWith('/dashboard')) {
     return assembleOfflineDashboard(endpoint);
   }
@@ -412,7 +442,8 @@ async function resolveOfflineGet(endpoint) {
     return assembleOfflineAnalytics(endpoint);
   }
   if (endpoint.startsWith('/categories')) {
-    return assembleOfflineCategories();
+    const cachedCats = await getCachedData(endpoint);
+    return cachedCats ? { ...cachedCats, _fromCache: true, _isOffline: true } : assembleOfflineCategories();
   }
   if (endpoint.startsWith('/auth/me')) {
     try {
@@ -424,11 +455,20 @@ async function resolveOfflineGet(endpoint) {
     return { success: true, user: { name: 'User', email: 'user@local' }, _isOffline: true };
   }
   if (endpoint.startsWith('/monthly-budget')) {
+    const cachedBudget = await getCachedData(endpoint);
+    if (cachedBudget) {
+      return { ...cachedBudget, _fromCache: true, _isOffline: true };
+    }
     return {
       success: true,
-      data: { budgetAmount: 3000, categoryBudgets: [] },
+      data: { budgetAmount: 0, categoryBudgets: [] },
       _isOffline: true,
     };
+  }
+
+  const cached = await getCachedData(endpoint);
+  if (cached) {
+    return { ...cached, _fromCache: true, _isOffline: true };
   }
 
   return null;
@@ -481,15 +521,22 @@ async function request(endpoint, options = {}) {
         }
       } catch (e) {}
 
-      // If fetching expenses, save to offline expenses store as well
+      // If fetching expenses, reconcile and sync with offline IndexedDB (prunes old deleted records!)
       if (endpoint.startsWith('/expenses') && data.data && Array.isArray(data.data)) {
-        saveMultipleOfflineExpenses(data.data);
+        try {
+          const urlObj = new URL(url, 'http://localhost');
+          const m = Number(urlObj.searchParams.get('month')) || null;
+          const y = Number(urlObj.searchParams.get('year')) || null;
+          await syncExpensesWithServer(data.data, m, y);
+        } catch (e) {
+          await saveMultipleOfflineExpenses(data.data);
+        }
       }
 
       return data;
     } catch (err) {
-      // If network failed, timed out, OR server/MongoDB errored, fall back to offline cache/synthesis
-      console.warn(`[API] Online request failed for ${endpoint}, using local cache:`, err.message);
+      // If network failed, timed out, OR server errored, fall back to offline cache/synthesis
+      console.warn(`[API] Online request failed for ${endpoint}, using local offline engine:`, err.message);
       try {
         const offlineResult = await resolveOfflineGet(endpoint);
         if (offlineResult) {
@@ -520,6 +567,20 @@ async function request(endpoint, options = {}) {
         throw new Error(data.error || 'Unauthorized');
       }
       throw new Error(data.error || `Request failed with status ${res.status}`);
+    }
+
+    // --- AUTO-UPDATE LOCAL OFFLINE STORE FOR ONLINE MUTATIONS ---
+    if (method === 'POST' && endpoint === '/expenses' && data && data.data) {
+      await saveOfflineExpense(data.data, 'synced');
+    } else if (method === 'PUT' && endpoint.startsWith('/expenses/') && data && data.data) {
+      await saveOfflineExpense(data.data, 'synced');
+    } else if (method === 'DELETE' && endpoint.startsWith('/expenses/')) {
+      const delId = endpoint.replace('/expenses/', '');
+      await deleteOfflineExpense(delId);
+      const mapped = resolveRealId(delId);
+      if (mapped && mapped !== delId) {
+        await deleteOfflineExpense(mapped);
+      }
     }
 
     return data;
@@ -569,11 +630,27 @@ async function handleOfflineMutation(endpoint, method, options) {
     const rawId = endpoint.replace('/expenses/', '');
     const realId = resolveRealId(rawId);
 
+    // Immediately remove from offline IndexedDB & LocalStorage
     await deleteOfflineExpense(rawId);
     if (realId !== rawId) {
       await deleteOfflineExpense(realId);
     }
 
+    // If it was created purely offline and never synced to MongoDB, cancel any pending creation!
+    if (rawId.startsWith('temp_') && realId === rawId) {
+      await removeMutationsForTempId(rawId);
+      return {
+        success: true,
+        data: { _id: rawId },
+        _isOffline: true,
+        message: 'Deleted locally.',
+      };
+    }
+
+    // Remove any pending updates for this expense from queue
+    await removeMutationsForTempId(realId);
+
+    // Queue DELETE mutation for server
     await addToSyncQueue({
       type: 'DELETE_EXPENSE',
       endpoint: `/expenses/${realId}`,
@@ -598,13 +675,18 @@ async function handleOfflineMutation(endpoint, method, options) {
     const updated = { ...body, _id: realId };
     await saveOfflineExpense(updated, 'pending');
 
-    await addToSyncQueue({
-      type: 'UPDATE_EXPENSE',
-      endpoint: `/expenses/${realId}`,
-      method: 'PUT',
-      body,
-      targetId: realId,
-    });
+    // If created offline and pending sync, update the CREATE mutation directly
+    if (rawId.startsWith('temp_') && realId === rawId) {
+      await updateMutationBody(rawId, body);
+    } else {
+      await addToSyncQueue({
+        type: 'UPDATE_EXPENSE',
+        endpoint: `/expenses/${realId}`,
+        method: 'PUT',
+        body,
+        targetId: realId,
+      });
+    }
 
     return {
       success: true,
@@ -698,6 +780,15 @@ export async function syncPendingData() {
         resolvedEndpoint = resolvedEndpoint.replace(item.targetId, real);
       }
 
+      // Clean requestBody: strip tempId if attached as _id
+      let requestBody = item.body;
+      if (requestBody && typeof requestBody === 'object') {
+        requestBody = { ...requestBody };
+        if (requestBody._id && String(requestBody._id).startsWith('temp_')) {
+          delete requestBody._id;
+        }
+      }
+
       const token = localStorage.getItem('finfood_token');
       const res = await fetchWithTimeout(`${BASE_URL}${resolvedEndpoint}`, {
         method: item.method,
@@ -705,26 +796,57 @@ export async function syncPendingData() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: item.body ? JSON.stringify(item.body) : undefined,
+        body: requestBody ? JSON.stringify(requestBody) : undefined,
       });
 
       if (res.ok) {
-        const result = await res.json();
+        const result = await res.json().catch(() => ({}));
 
-        // If expense creation succeeded, map temp ID to real MongoDB _id
-        if (item.type === 'CREATE_EXPENSE' && item.tempId && result.data && result.data._id) {
-          registerIdMapping(item.tempId, result.data._id);
-          await deleteOfflineExpense(item.tempId);
+        // 1. CREATE_EXPENSE: map tempId to real Mongo _id, purge tempId, save server record
+        if (item.type === 'CREATE_EXPENSE') {
+          if (item.tempId && result.data && result.data._id) {
+            registerIdMapping(item.tempId, result.data._id);
+            await deleteOfflineExpense(item.tempId);
+            await saveOfflineExpense(result.data, 'synced');
+          }
+        }
+
+        // 2. DELETE_EXPENSE: ensure all references are deleted locally
+        if (item.type === 'DELETE_EXPENSE') {
+          if (item.targetId) await deleteOfflineExpense(item.targetId);
+          if (item.rawId) await deleteOfflineExpense(item.rawId);
+          const mappedReal = resolveRealId(item.targetId);
+          if (mappedReal) await deleteOfflineExpense(mappedReal);
+        }
+
+        // 3. UPDATE_EXPENSE: save updated server record
+        if (item.type === 'UPDATE_EXPENSE' && result.data) {
           await saveOfflineExpense(result.data, 'synced');
         }
 
         await removeSyncQueueItem(item.id);
         syncedCount++;
       } else if (res.status === 404 && item.type === 'DELETE_EXPENSE') {
+        // Record already removed on server; ensure local deletion and clear from queue
+        if (item.targetId) await deleteOfflineExpense(item.targetId);
+        if (item.rawId) await deleteOfflineExpense(item.rawId);
+        const mappedReal = resolveRealId(item.targetId);
+        if (mappedReal) await deleteOfflineExpense(mappedReal);
         await removeSyncQueueItem(item.id);
         syncedCount++;
+      } else if (res.status === 401) {
+        console.warn('[Sync] Unauthorized 401. Halting sync until re-login.');
+        break;
+      } else if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
+        // Permanent client error: discard so queue doesn't stay blocked forever
+        console.warn(`[Sync] Dropping invalid queue item (Status ${res.status}):`, item);
+        await removeSyncQueueItem(item.id);
+      } else {
+        // Temporary server error: stop and retry on next interval
+        break;
       }
     } catch (err) {
+      console.warn('[Sync] Network error while syncing, pausing sync:', err.message);
       break;
     }
   }
@@ -771,6 +893,7 @@ if (typeof window !== 'undefined') {
 export const api = {
   syncPendingData,
   onSyncCompleted,
+  clearAllOfflineData,
 
   // Authentication
   register: (data) =>

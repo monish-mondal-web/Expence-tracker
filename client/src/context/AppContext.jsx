@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { toLocalISODate } from '../utils/date';
 import { api } from '../services/api';
-import { onSyncChange, getPendingSyncCount } from '../services/offlineStorage';
+import { onSyncChange, getPendingSyncCount, deleteOfflineExpense } from '../services/offlineStorage';
 
 const AppContext = createContext();
 
@@ -89,11 +89,16 @@ export const AppProvider = ({ children }) => {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed === 'object') {
-            return parsed;
+            const currentM = now.getMonth() + 1;
+            const currentY = now.getFullYear();
+            // Strictly scope cache to the current month & year so budget resets for new months!
+            if (!parsed.month || (parsed.month === currentM && parsed.year === currentY)) {
+              return parsed;
+            }
           }
         }
       }
-    } catch (e) {}
+    } catch {}
     return null;
   });
   const [isDashboardLoading, setIsDashboardLoading] = useState(false);
@@ -150,7 +155,9 @@ export const AppProvider = ({ children }) => {
     const handleOnline = () => {
       setIsOnline(true);
       showToast('Back online! Syncing data...', 'success');
-      api.syncPendingData();
+      api.syncPendingData()
+        .then(() => triggerRefresh())
+        .catch(() => triggerRefresh());
     };
 
     const handleOffline = () => {
@@ -173,6 +180,15 @@ export const AppProvider = ({ children }) => {
 
     getPendingSyncCount().then((count) => setPendingSyncCount(count));
 
+    // Also auto-sync on mount if online
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      api.syncPendingData()
+        .then(() => triggerRefresh())
+        .catch(() => {});
+      // Pre-populate offline store with user's historical expenses for calendar and analytics
+      api.getExpenses({}).catch(() => {});
+    }
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -187,10 +203,11 @@ export const AppProvider = ({ children }) => {
       const res = await api.getDashboard(currentMonth, currentYear, todayDate, activeSpace);
       if (res && res.data) {
         setDashboardData((prev) => {
-          // If MongoDB returned hasBudget: false, but local previously had a valid budget,
-          // protect the user's budget from being wiped by an uninitialized/partial DB response!
+          // Only preserve local optimistic budget if we are in the EXACT SAME month & year.
+          // When a month ends or user views a new month without budget, budget cleanly resets to 0!
+          const isSameMonth = prev && prev.month === res.data.month && prev.year === res.data.year;
           const serverHasBudget = Boolean(res.data.hasBudget) && (Number(res.data.monthlyBudget) || 0) > 0;
-          const localHasBudget = Boolean(prev?.hasBudget) && (Number(prev?.monthlyBudget) || 0) > 0;
+          const localHasBudget = isSameMonth && Boolean(prev?.hasBudget) && (Number(prev?.monthlyBudget) || 0) > 0;
 
           if (!serverHasBudget && localHasBudget) {
             const preserved = {
@@ -201,28 +218,30 @@ export const AppProvider = ({ children }) => {
             };
             try {
               localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(preserved));
-            } catch (e) {}
+            } catch {}
             return preserved;
           }
 
           try {
             localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(res.data));
-          } catch (e) {}
+          } catch {}
           return res.data;
         });
       }
     } catch (err) {
       console.warn('Dashboard fetch error (using local cache):', err);
-      // Ensure we keep local cached data
+      // Ensure we keep local cached data ONLY if matching current view's month & year
       try {
         if (typeof window !== 'undefined') {
           const saved = localStorage.getItem('pk_cached_dashboard_v1');
           if (saved) {
             const parsed = JSON.parse(saved);
-            if (parsed) setDashboardData(parsed);
+            if (parsed && (!parsed.month || (parsed.month === currentMonth && parsed.year === currentYear))) {
+              setDashboardData(parsed);
+            }
           }
         }
-      } catch (e) {}
+      } catch {}
     } finally {
       setIsDashboardLoading(false);
     }
@@ -389,7 +408,7 @@ export const AppProvider = ({ children }) => {
         };
       }
 
-      return {
+      const updatedState = {
         ...prev,
         totalSpent: updatedTotal,
         todaySpent: updatedToday,
@@ -402,6 +421,12 @@ export const AppProvider = ({ children }) => {
         activeSpaceData: updatedActiveSpaceData,
         recentExpenses: [newExp, ...(prev.recentExpenses || [])],
       };
+
+      try {
+        localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(updatedState));
+      } catch {}
+
+      return updatedState;
     });
 
     closeAddExpense();
@@ -492,7 +517,7 @@ export const AppProvider = ({ children }) => {
         };
       }
 
-      return {
+      const updatedState = {
         ...prev,
         totalSpent: updatedTotal,
         todaySpent: updatedToday,
@@ -504,6 +529,12 @@ export const AppProvider = ({ children }) => {
           e._id === id ? { ...e, ...payload } : e
         ),
       };
+
+      try {
+        localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(updatedState));
+      } catch {}
+
+      return updatedState;
     });
 
     closeAddExpense();
@@ -524,6 +555,11 @@ export const AppProvider = ({ children }) => {
   };
 
   const deleteExpenseOptimistic = async (expense) => {
+    // 0ms instant local offline deletion
+    if (expense?._id) {
+      deleteOfflineExpense(expense._id);
+    }
+
     // 1. INSTANT LOCAL STATE UPDATE (0ms)
     setDashboardData((prev) => {
       if (!prev) return prev;
@@ -582,7 +618,7 @@ export const AppProvider = ({ children }) => {
         };
       }
 
-      return {
+      const updatedState = {
         ...prev,
         totalSpent: updatedTotal,
         todaySpent: updatedToday,
@@ -595,6 +631,12 @@ export const AppProvider = ({ children }) => {
         activeSpaceData: updatedActiveSpaceData,
         recentExpenses: (prev.recentExpenses || []).filter((e) => e._id !== expense._id),
       };
+
+      try {
+        localStorage.setItem('pk_cached_dashboard_v1', JSON.stringify(updatedState));
+      } catch {}
+
+      return updatedState;
     });
 
     // 2. BACKGROUND SERVER SYNC OR OFFLINE QUEUE (Runs in background)

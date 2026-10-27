@@ -178,3 +178,13 @@ This repository is pre-configured with `vercel.json` for full-stack deployment o
    - `EMAIL_PASS` (optional): 16-character Google App Password
 5. Click **Deploy**. Vercel will build both the frontend and serverless API automatically.
 
+---
+
+## What's New in Version 1.3 (Pocket Khorcha • v1.3 Release)
+
+- **Flawless Offline & Cloud Sync**: Full bidirectional sync with IndexedDB and MongoDB Atlas. Deletions and edits made offline cleanly reconcile without deleted items reappearing.
+- **Month-End Budget Auto-Reset**: When a month ends or when browsing to an unbudgeted new month, the budget cleanly resets to zero with prompt to set fresh spending goals, preventing stale budget carryover.
+- **Full Historical Calendar Access**: Past months in Calendar now load all historical expense transactions, highlight spending days, and automatically select days with logged spend for instant drill-down.
+- **0ms Instant Optimistic Deletion**: Expenses deleted locally are immediately pruned from the UI list and local cache with zero latency.
+- **Universal Month Navigation**: Easily switch active months directly from the top header or the Expenses page to review any past spending records.
+

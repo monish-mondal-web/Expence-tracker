@@ -7,7 +7,13 @@ const MONTH_NAMES = [
  * Returns YYYY-MM-DD for a given Date object or string in local time.
  */
 export function toLocalISODate(date = new Date()) {
+  if (!date) return '';
+  if (typeof date === 'string') {
+    const match = date.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
   const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');

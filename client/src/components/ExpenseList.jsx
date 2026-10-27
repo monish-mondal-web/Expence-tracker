@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
 import { api } from '../services/api';
 import { PlusCircle, ShoppingBag } from 'lucide-react';
 
-export const ExpenseList = ({ expenses = [], title = 'Recent Expenses', showViewAll = false }) => {
+export const ExpenseList = ({ expenses = [], title = 'Recent Expenses', showViewAll = false, onDeleteExpense = null }) => {
   const {
     categories,
     triggerRefresh,
@@ -53,7 +53,11 @@ export const ExpenseList = ({ expenses = [], title = 'Recent Expenses', showView
       message: `Are you sure you want to delete this ${expense.category} expense of ${formatCurrency(expense.amount)}?`,
       onConfirm: async () => {
         // INSTANT OPTIMISTIC DELETE (0ms)
-        deleteExpenseOptimistic(expense);
+        if (onDeleteExpense) {
+          onDeleteExpense(expense);
+        } else {
+          deleteExpenseOptimistic(expense);
+        }
       },
     });
   };

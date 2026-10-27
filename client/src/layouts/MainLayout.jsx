@@ -109,8 +109,36 @@ export const MainLayout = ({ children }) => {
             </div>
           </div>
 
-          {/* Sub-Header Positive Status Pill (Right-aligned / Under Header) */}
-          <div className="header-status-row">
+          {/* Sub-Header Month Selector & Positive Status Pill */}
+          <div className="header-status-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setShowMonthPicker((prev) => !prev)}
+              title="Toggle Month Selector"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.3rem 0.65rem',
+                borderRadius: '9999px',
+                border: '1px solid #E2E8F0',
+                background: showMonthPicker ? '#EFF6FF' : '#F8FAFC',
+                color: showMonthPicker ? '#2563EB' : '#475569',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <span>{formatMonthYear(currentMonth, currentYear)}</span>
+              <ChevronRight
+                size={12}
+                style={{
+                  transform: showMonthPicker ? 'rotate(90deg)' : 'none',
+                  transition: 'transform 0.2s',
+                }}
+              />
+            </button>
+
             <div className="positive-status-pill">
               <div className="status-leaf-circle">
                 <Leaf size={12} color="#059669" />

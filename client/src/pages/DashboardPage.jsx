@@ -22,6 +22,8 @@ export const DashboardPage = () => {
     setActiveTab,
     activeSpace,
     triggerRefresh,
+    currentMonth,
+    currentYear,
   } = useApp();
 
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -42,17 +44,19 @@ export const DashboardPage = () => {
     if (!currentUserKey) return;
     if (promptedUserKeyRef.current === currentUserKey) return;
 
-    // Check if user has budget doc or any monthly budget amount set (either server or local cache)
+    // Check if user has budget doc or any monthly budget amount set (either server or local cache matching active month)
     let localSavedBudget = 0;
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('pk_cached_dashboard_v1');
         if (saved) {
           const parsed = JSON.parse(saved);
-          localSavedBudget = Number(parsed?.monthlyBudget) || 0;
+          if (!parsed.month || (parsed.month === currentMonth && parsed.year === currentYear)) {
+            localSavedBudget = Number(parsed?.monthlyBudget) || 0;
+          }
         }
       }
-    } catch (e) {}
+    } catch {}
 
     const hasBudgetDoc =
       (Boolean(dashboardData?.hasBudget) && (Number(dashboardData?.monthlyBudget) || 0) > 0) ||

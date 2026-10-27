@@ -690,7 +690,7 @@ export const SettingsPage = () => {
             </div>
             <div>
               <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Pocket Khorcha</h3>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>Version 1.2 (Offline-First Edition)</p>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B' }}>Version 1.3 (Smart Sync & Multi-Month Edition)</p>
             </div>
           </div>
           <span style={{ fontSize: '0.72rem', fontWeight: 700, background: '#DCFCE7', color: '#15803D', padding: '3px 8px', borderRadius: '999px' }}>
@@ -699,7 +699,7 @@ export const SettingsPage = () => {
         </div>
 
         <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 1rem', lineHeight: 1.45 }}>
-          Now with 100% offline access, automatic background cloud sync, category editing, and 80+ icons.
+          Now with automated month-end budget reset, historical calendar viewing, 0ms instant delete, and flawless offline cloud sync.
         </p>
 
         <button
@@ -719,7 +719,7 @@ export const SettingsPage = () => {
           }}
         >
           <Info size={16} color="#059669" />
-          <span>View What's New in v1.2</span>
+          <span>View What's New in v1.3</span>
         </button>
       </div>
 

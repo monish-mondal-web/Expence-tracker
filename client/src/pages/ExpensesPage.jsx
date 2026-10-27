@@ -6,10 +6,10 @@ import { Skeleton } from '../components/Skeleton';
 import { OfflineFallback } from '../components/OfflineFallback';
 import { formatCurrency } from '../utils/currency';
 import { formatMonthYear } from '../utils/date';
-import { Search, Filter, ArrowUpDown, Plus } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const ExpensesPage = () => {
-  const { currentMonth, currentYear, refreshKey, categories, openAddExpense, triggerRefresh } = useApp();
+  const { currentMonth, currentYear, refreshKey, categories, openAddExpense, triggerRefresh, deleteExpenseOptimistic, prevMonth, nextMonth } = useApp();
 
   const [expenses, setExpenses] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -18,6 +18,13 @@ export const ExpensesPage = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortOrder, setSortOrder] = useState('newest');
+
+  const handleDeleteExpense = (expense) => {
+    // 0ms instant optimistic removal from UI list
+    setExpenses((prev) => prev.filter((e) => e._id !== expense._id));
+    setTotalAmount((prev) => Math.max(0, prev - (Number(expense.amount) || 0)));
+    deleteExpenseOptimistic(expense);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -92,9 +99,53 @@ export const ExpensesPage = () => {
         }}
       >
         <div>
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            {formatMonthYear(currentMonth, currentYear)}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {formatMonthYear(currentMonth, currentYear)}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button
+                type="button"
+                onClick={prevMonth}
+                title="Previous month"
+                style={{
+                  border: '1px solid #E2E8F0',
+                  background: '#F8FAFC',
+                  borderRadius: '6px',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#475569',
+                  padding: 0,
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={nextMonth}
+                title="Next month"
+                style={{
+                  border: '1px solid #E2E8F0',
+                  background: '#F8FAFC',
+                  borderRadius: '6px',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#475569',
+                  padding: 0,
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
           <h2 style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-secondary)', margin: '0.1rem 0' }}>
             Total Expenses
           </h2>
@@ -216,7 +267,7 @@ export const ExpensesPage = () => {
       </div>
 
       {/* Expenses List */}
-      <ExpenseList expenses={expenses} title="All Expenses" />
+      <ExpenseList expenses={expenses} title="All Expenses" onDeleteExpense={handleDeleteExpense} />
     </div>
   );
 };

@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }) => {
           const isUnauthorized = err.message === 'Unauthorized' || err.status === 401;
           if (isUnauthorized && isMounted) {
             console.warn('Session expired. Logging out.');
+            api.clearAllOfflineData().catch(() => {});
             localStorage.removeItem('finfood_token');
             localStorage.removeItem('finfood_user');
             setToken(null);
@@ -118,6 +119,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    api.clearAllOfflineData().catch(() => {});
     localStorage.removeItem('finfood_token');
     localStorage.removeItem('finfood_user');
     setToken(null);

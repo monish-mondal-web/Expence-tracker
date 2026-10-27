@@ -11,9 +11,13 @@ import {
   ShieldCheck,
   Rocket,
   PartyPopper,
+  RotateCcw,
+  CalendarDays,
+  Trash2,
+  SlidersHorizontal,
 } from 'lucide-react';
 
-const STORAGE_KEY = 'pk_v1_2_update_announced';
+const STORAGE_KEY = 'pk_v1_3_update_announced';
 
 export const UpdateAnnouncementModal = () => {
   const { showToast } = useApp();
@@ -96,7 +100,7 @@ export const UpdateAnnouncementModal = () => {
       console.error('Confetti burst error:', err);
     }
 
-    showToast('🎉 Woohoo! Pocket Khorcha v1.2 Activated! Enjoy 100% offline tracking.', 'success');
+    showToast('🎉 Woohoo! Pocket Khorcha v1.3 Activated! Clean sync & multi-month ready.', 'success');
 
     // Smoothly close after user sees the celebration effect
     setTimeout(() => {
@@ -209,7 +213,7 @@ export const UpdateAnnouncementModal = () => {
               }}
             >
               <ShieldCheck size={13} color="#34D399" />
-              <span>Pocket Khorcha • v1.2 Release</span>
+              <span>Pocket Khorcha • v1.3 Release</span>
             </span>
           </div>
 
@@ -223,7 +227,7 @@ export const UpdateAnnouncementModal = () => {
               letterSpacing: '-0.02em',
             }}
           >
-            Now Works 100% Offline!
+            Smarter Sync & Month Controls!
           </h2>
           <p
             style={{
@@ -231,12 +235,12 @@ export const UpdateAnnouncementModal = () => {
               fontSize: '0.84rem',
               color: 'rgba(236, 253, 245, 0.9)',
               lineHeight: 1.4,
-              maxWidth: '340px',
+              maxWidth: '350px',
               marginLeft: 'auto',
               marginRight: 'auto',
             }}
           >
-            Track and manage your expenses anytime, anywhere — even without an active internet connection.
+            Automatic budget reset, complete calendar history, zero-latency deletions, and flawless offline-to-cloud synchronization.
           </p>
         </div>
 
@@ -252,7 +256,7 @@ export const UpdateAnnouncementModal = () => {
             gap: '0.75rem',
           }}
         >
-          {/* Item 1: Offline */}
+          {/* Item 1: Clean Offline Sync */}
           <div
             style={{
               display: 'flex',
@@ -276,91 +280,19 @@ export const UpdateAnnouncementModal = () => {
                 flexShrink: 0,
               }}
             >
-              <WifiOff size={18} color="#059669" />
+              <RefreshCw size={18} color="#059669" />
             </div>
             <div>
               <h4 style={{ margin: '0 0 2px', fontSize: '0.86rem', fontWeight: 700, color: '#0F172A' }}>
-                Zero-Data Offline Support
+                Clean Offline & Cloud Sync
               </h4>
               <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.38 }}>
-                The app launches immediately in offline or airplane mode with your full budget and past records ready.
+                Seamlessly saves offline. Reconnecting to internet updates the cloud cleanly without old deleted records resurfacing.
               </p>
             </div>
           </div>
 
-          {/* Item 2: Auto Sync */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '12px',
-              background: '#FFFFFF',
-              padding: '0.8rem 0.9rem',
-              borderRadius: '14px',
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-            }}
-          >
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: '#EFF6FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <RefreshCw size={18} color="#2563EB" />
-            </div>
-            <div>
-              <h4 style={{ margin: '0 0 2px', fontSize: '0.86rem', fontWeight: 700, color: '#0F172A' }}>
-                Automatic Cloud Sync
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.38 }}>
-                Any expenses recorded while offline are queued locally and quietly uploaded when internet reconnects.
-              </p>
-            </div>
-          </div>
-
-          {/* Item 3: Category Edit & Space Linking */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '12px',
-              background: '#FFFFFF',
-              padding: '0.8rem 0.9rem',
-              borderRadius: '14px',
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-            }}
-          >
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: '#F5F3FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Tag size={18} color="#7C3AED" />
-            </div>
-            <div>
-              <h4 style={{ margin: '0 0 2px', fontSize: '0.86rem', fontWeight: 700, color: '#0F172A' }}>
-                Category Edit & Space Linking
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.38 }}>
-                Edit category names, icons, and colors anytime, and link them to Spaces (Food, Maid, Utilities, Rent).
-              </p>
-            </div>
-          </div>
-
-          {/* Item 4: Maid & 80+ Icons */}
+          {/* Item 2: Month-End Budget Reset */}
           <div
             style={{
               display: 'flex',
@@ -384,14 +316,122 @@ export const UpdateAnnouncementModal = () => {
                 flexShrink: 0,
               }}
             >
-              <Brush size={18} color="#D97706" />
+              <RotateCcw size={18} color="#D97706" />
             </div>
             <div>
               <h4 style={{ margin: '0 0 2px', fontSize: '0.86rem', fontWeight: 700, color: '#0F172A' }}>
-                80+ Icons (Maid, Cook, Utilities)
+                Month-End Budget Auto-Reset
               </h4>
               <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.38 }}>
-                Dedicated icons for Maid/Cleaning, Cook, Washing Machine, Room Rent, Lightbulb, Healthcare & more.
+                When a month ends or you switch to an unbudgeted month, previous budgets cleanly reset to zero and prompt for new targets.
+              </p>
+            </div>
+          </div>
+
+          {/* Item 3: Calendar History & Auto-Selection */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              background: '#FFFFFF',
+              padding: '0.8rem 0.9rem',
+              borderRadius: '14px',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: '#EFF6FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <CalendarDays size={18} color="#2563EB" />
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 2px', fontSize: '0.86rem', fontWeight: 700, color: '#0F172A' }}>
+                Full Calendar History Access
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.38 }}>
+                Navigate back to any past month in Calendar to view all historical spending dots, day details, and exact expense logs.
+              </p>
+            </div>
+          </div>
+
+          {/* Item 4: Instant 0ms Delete */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              background: '#FFFFFF',
+              padding: '0.8rem 0.9rem',
+              borderRadius: '14px',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: '#FFF1F2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Trash2 size={18} color="#E11D48" />
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 2px', fontSize: '0.86rem', fontWeight: 700, color: '#0F172A' }}>
+                Instant Optimistic Deletion
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.38 }}>
+                Deleting an expense removes it immediately from your screen, dashboard totals, and local storage with zero delay.
+              </p>
+            </div>
+          </div>
+
+          {/* Item 5: Global Month Switcher */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              background: '#FFFFFF',
+              padding: '0.8rem 0.9rem',
+              borderRadius: '14px',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+            }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: '#F5F3FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <SlidersHorizontal size={18} color="#7C3AED" />
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 2px', fontSize: '0.86rem', fontWeight: 700, color: '#0F172A' }}>
+                Universal Month Navigation
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.38 }}>
+                Easily toggle between months from the top header or the Expenses page to inspect your full spending journey.
               </p>
             </div>
           </div>
@@ -437,12 +477,12 @@ export const UpdateAnnouncementModal = () => {
             {isCelebrating ? (
               <>
                 <PartyPopper size={20} color="#FDE047" />
-                <span>Woohoo! Welcome to v1.2 🎉</span>
+                <span>Woohoo! Welcome to v1.3 🎉</span>
               </>
             ) : (
               <>
                 <Rocket size={19} color="#FFFFFF" />
-                <span>Sounds Amazing! Let's Dive In 🚀</span>
+                <span>Explore v1.3 Features 🚀</span>
               </>
             )}
           </button>

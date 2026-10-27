@@ -13,7 +13,7 @@ let dbPromise = null;
 function openDB() {
   if (dbPromise) return dbPromise;
 
-  dbPromise = new Promise((resolve, reject) => {
+  dbPromise = new Promise((resolve) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
       resolve(null);
       return;
@@ -81,20 +81,15 @@ export async function setCachedData(key, data) {
   try {
     const db = await openDB();
     if (db) {
-      return new Promise((resolve) => {
+      await new Promise((resolve) => {
         const tx = db.transaction('cache', 'readwrite');
         const store = tx.objectStore('cache');
         store.put({ key, data, timestamp: Date.now() });
         tx.oncomplete = () => resolve(true);
-        tx.onerror = () => {
-          setLS(`cache_${key}`, data);
-          resolve(false);
-        };
+        tx.onerror = () => resolve(false);
       });
     }
-  } catch (e) {
-    // fallback
-  }
+  } catch (e) {}
   setLS(`cache_${key}`, data);
   return true;
 }
@@ -103,23 +98,18 @@ export async function getCachedData(key) {
   try {
     const db = await openDB();
     if (db) {
-      return new Promise((resolve) => {
+      const result = await new Promise((resolve) => {
         const tx = db.transaction('cache', 'readonly');
         const store = tx.objectStore('cache');
         const req = store.get(key);
-        req.onsuccess = () => {
-          if (req.result && req.result.data) {
-            resolve(req.result.data);
-          } else {
-            resolve(getLS(`cache_${key}`));
-          }
-        };
-        req.onerror = () => resolve(getLS(`cache_${key}`));
+        req.onsuccess = () => resolve(req.result ? req.result.data : null);
+        req.onerror = () => resolve(null);
       });
+      if (result !== null && result !== undefined) {
+        return result;
+      }
     }
-  } catch (e) {
-    // fallback
-  }
+  } catch (e) {}
   return getLS(`cache_${key}`);
 }
 
@@ -127,6 +117,8 @@ export async function getCachedData(key) {
 // EXPENSES STORE (Offline-first Expenses Database)
 // -------------------------------------------------------------
 export async function saveOfflineExpense(expense, syncStatus = 'synced') {
+  if (!expense || !expense._id) return null;
+
   const record = {
     ...expense,
     sync_status: syncStatus,
@@ -136,28 +128,25 @@ export async function saveOfflineExpense(expense, syncStatus = 'synced') {
   try {
     const db = await openDB();
     if (db) {
-      return new Promise((resolve) => {
+      await new Promise((resolve) => {
         const tx = db.transaction('expenses', 'readwrite');
         const store = tx.objectStore('expenses');
         store.put(record);
         tx.oncomplete = () => resolve(record);
-        tx.onerror = () => {
-          const list = getLS('expenses') || [];
-          const idx = list.findIndex((e) => e._id === record._id);
-          if (idx >= 0) list[idx] = record;
-          else list.unshift(record);
-          setLS('expenses', list);
-          resolve(record);
-        };
+        tx.onerror = () => resolve(null);
       });
     }
   } catch (e) {}
 
-  const list = getLS('expenses') || [];
-  const idx = list.findIndex((e) => e._id === record._id);
-  if (idx >= 0) list[idx] = record;
-  else list.unshift(record);
-  setLS('expenses', list);
+  // ALWAYS keep LocalStorage fallback in sync
+  try {
+    const list = getLS('expenses') || [];
+    const idx = list.findIndex((e) => e._id === record._id);
+    if (idx >= 0) list[idx] = record;
+    else list.unshift(record);
+    setLS('expenses', list);
+  } catch (e) {}
+
   return record;
 }
 
@@ -168,26 +157,77 @@ export async function saveMultipleOfflineExpenses(expensesList) {
   }
 }
 
+/**
+ * Reconciles the local offline cache with authoritative server records.
+ * Saves current server records, AND deletes any local 'synced' expenses that
+ * were deleted on the server so old deleted data never haunts the user!
+ */
+export async function syncExpensesWithServer(serverExpenses, month = null, year = null) {
+  if (!Array.isArray(serverExpenses)) return;
+
+  const serverIdSet = new Set(serverExpenses.map((e) => String(e._id)));
+
+  // 1. Upsert all valid expenses from the server
+  for (const exp of serverExpenses) {
+    await saveOfflineExpense(exp, 'synced');
+  }
+
+  // 2. Find and purge any local expenses that no longer exist on the server
+  try {
+    const localExpenses = await getAllOfflineExpenses();
+    for (const localExp of localExpenses) {
+      // Don't delete pending offline mutations waiting to be uploaded
+      if (localExp.sync_status === 'pending' || String(localExp._id).startsWith('temp_')) {
+        continue;
+      }
+
+      // Check date bounds if month & year are provided
+      if (month && year && localExp.date) {
+        const d = new Date(localExp.date);
+        const expMonth = d.getMonth() + 1;
+        const expYear = d.getFullYear();
+        if (expMonth !== month || expYear !== year) {
+          continue; // Belongs to another month, don't prune now
+        }
+      }
+
+      // If this expense is marked 'synced' but is missing from server's list, it was deleted!
+      if (!serverIdSet.has(String(localExp._id))) {
+        await deleteOfflineExpense(localExp._id);
+      }
+    }
+  } catch (err) {
+    console.warn('[OfflineStorage] Error cleaning stale expenses:', err);
+  }
+}
+
 export async function deleteOfflineExpense(id) {
+  if (!id) return true;
+  const idStr = String(id);
+
   try {
     const db = await openDB();
     if (db) {
-      return new Promise((resolve) => {
+      await new Promise((resolve) => {
         const tx = db.transaction('expenses', 'readwrite');
         const store = tx.objectStore('expenses');
-        store.delete(id);
+        store.delete(idStr);
+        // Also delete numeric/raw if applicable
+        if (id !== idStr) {
+          store.delete(id);
+        }
         tx.oncomplete = () => resolve(true);
-        tx.onerror = () => {
-          const list = getLS('expenses') || [];
-          setLS('expenses', list.filter((e) => e._id !== id));
-          resolve(true);
-        };
+        tx.onerror = () => resolve(false);
       });
     }
   } catch (e) {}
 
-  const list = getLS('expenses') || [];
-  setLS('expenses', list.filter((e) => e._id !== id));
+  // ALWAYS also delete from LocalStorage fallback
+  try {
+    const list = getLS('expenses') || [];
+    setLS('expenses', list.filter((e) => String(e._id) !== idStr));
+  } catch (e) {}
+
   return true;
 }
 
@@ -195,19 +235,18 @@ export async function getAllOfflineExpenses() {
   try {
     const db = await openDB();
     if (db) {
-      return new Promise((resolve) => {
+      const result = await new Promise((resolve) => {
         const tx = db.transaction('expenses', 'readonly');
         const store = tx.objectStore('expenses');
         const req = store.getAll();
-        req.onsuccess = () => {
-          if (req.result && req.result.length > 0) {
-            resolve(req.result);
-          } else {
-            resolve(getLS('expenses') || []);
-          }
-        };
-        req.onerror = () => resolve(getLS('expenses') || []);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
       });
+
+      // If IndexedDB returned an array (even if empty []), use it as the source of truth!
+      if (Array.isArray(result)) {
+        return result;
+      }
     }
   } catch (e) {}
 
@@ -273,15 +312,16 @@ export async function getSyncQueue() {
   try {
     const db = await openDB();
     if (db) {
-      return new Promise((resolve) => {
+      const result = await new Promise((resolve) => {
         const tx = db.transaction('sync_queue', 'readonly');
         const store = tx.objectStore('sync_queue');
         const req = store.getAll();
-        req.onsuccess = () => {
-          resolve(req.result || getLS('sync_queue') || []);
-        };
-        req.onerror = () => resolve(getLS('sync_queue') || []);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
       });
+      if (Array.isArray(result)) {
+        return result;
+      }
     }
   } catch (e) {}
 
@@ -297,23 +337,59 @@ export async function removeSyncQueueItem(id) {
         const store = tx.objectStore('sync_queue');
         store.delete(id);
         tx.oncomplete = () => resolve();
-        tx.onerror = () => {
-          const q = getLS('sync_queue') || [];
-          setLS('sync_queue', q.filter((i) => i.id !== id));
-          resolve();
-        };
+        tx.onerror = () => resolve();
       });
-    } else {
-      const q = getLS('sync_queue') || [];
-      setLS('sync_queue', q.filter((i) => i.id !== id));
     }
-  } catch (e) {
-    const q = getLS('sync_queue') || [];
-    setLS('sync_queue', q.filter((i) => i.id !== id));
-  }
+  } catch (e) {}
+
+  const q = getLS('sync_queue') || [];
+  setLS('sync_queue', q.filter((i) => i.id !== id));
 
   const count = await getPendingSyncCount();
   notifySyncListeners({ isSyncing: false, pendingCount: count });
+}
+
+/**
+ * Cancels and deletes all queued mutations associated with a local tempId.
+ * Used when an offline-created expense is deleted before syncing online.
+ */
+export async function removeMutationsForTempId(tempId) {
+  if (!tempId) return;
+  const queue = await getSyncQueue();
+  for (const item of queue) {
+    if (item.tempId === tempId || item.targetId === tempId || item.rawId === tempId) {
+      if (item.id !== undefined) {
+        await removeSyncQueueItem(item.id);
+      }
+    }
+  }
+}
+
+/**
+ * Updates the queued body for an offline mutation (e.g. edit before upload).
+ */
+export async function updateMutationBody(targetId, newBody) {
+  if (!targetId || !newBody) return;
+  const queue = await getSyncQueue();
+  for (const item of queue) {
+    if (item.tempId === targetId || item.targetId === targetId) {
+      item.body = { ...item.body, ...newBody };
+      try {
+        const db = await openDB();
+        if (db && item.id !== undefined) {
+          const tx = db.transaction('sync_queue', 'readwrite');
+          tx.objectStore('sync_queue').put(item);
+        }
+      } catch (e) {}
+    }
+  }
+  const q = getLS('sync_queue') || [];
+  const updated = q.map((item) =>
+    item.tempId === targetId || item.targetId === targetId
+      ? { ...item, body: { ...item.body, ...newBody } }
+      : item
+  );
+  setLS('sync_queue', updated);
 }
 
 export async function getPendingSyncCount() {
@@ -342,4 +418,38 @@ export function resolveRealId(id) {
   if (idMap.has(id)) return idMap.get(id);
   const stored = getLS('id_map') || {};
   return stored[id] || id;
+}
+
+// -------------------------------------------------------------
+// PURGE / LOGOUT HELPER
+// -------------------------------------------------------------
+export async function clearAllOfflineData() {
+  try {
+    const db = await openDB();
+    if (db) {
+      await new Promise((resolve) => {
+        const tx = db.transaction(['expenses', 'cache', 'sync_queue'], 'readwrite');
+        tx.objectStore('expenses').clear();
+        tx.objectStore('cache').clear();
+        tx.objectStore('sync_queue').clear();
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    }
+  } catch (e) {}
+
+  try {
+    if (typeof window !== 'undefined') {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('pk_') || k.startsWith('finfood_cached_'))) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    }
+  } catch (e) {}
+
+  notifySyncListeners({ isSyncing: false, pendingCount: 0 });
 }

@@ -18,13 +18,20 @@ exports.getCalendarData = async (req, res, next) => {
     const daysMap = {};
 
     expenses.forEach((e) => {
-      const d = new Date(e.date);
-      const dateKey = d.toISOString().slice(0, 10); // YYYY-MM-DD
+      let dateKey;
+      if (e.date) {
+        const str = e.date.toISOString ? e.date.toISOString() : String(e.date);
+        dateKey = str.slice(0, 10);
+      } else {
+        const d = new Date(e.createdAt || Date.now());
+        dateKey = d.toISOString().slice(0, 10);
+      }
+      const dayNum = parseInt(dateKey.slice(8, 10), 10) || 1;
 
       if (!daysMap[dateKey]) {
         daysMap[dateKey] = {
           date: dateKey,
-          day: d.getUTCDate(),
+          day: dayNum,
           totalSpent: 0,
           expenses: [],
         };
